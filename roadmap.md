@@ -5,14 +5,14 @@ Este roadmap detalha as fases de desenvolvimento do projeto Athlon, permitindo u
 
 ---
 
-## 🏗️ Fase 1: Fundação & Infraestrutura (O Core)
+## 🏗️ Fase 1: Fundação & Infraestrutura (O Core) ✅
 *O foco aqui é preparar o terreno e garantir que as ferramentas base estejam configuradas.*
 
-- [ ] **Setup Inicial:** Configuração do Next.js 15, Drizzle ORM e conexão com MySQL via Docker.
-- [ ] **Ambiente Docker:** Refinamento do `docker-compose` para persistência e performance.
-- [ ] **Autenticação (Auth):** Login, Registro e recuperação de senha.
-- [ ] **Arquitetura de Roles (RBAC):** Implementação base dos papéis (Admin, Jogador).
-- [ ] **Layout Base:** Header, Sidebar e aplicação do Design System (Cores/Tipografia).
+- [x] **Setup Inicial:** Configuração do Next.js 15, Drizzle ORM e conexão com MySQL via Docker.
+- [x] **Ambiente Docker:** Refinamento do `docker-compose` para persistência e performance.
+- [x] **Autenticação (Auth):** Login, Registro e recuperação de senha via Auth.js v5.
+- [x] **Arquitetura de Roles (RBAC):** Campo `role` no schema + JWT com role na sessão.
+- [x] **Layout Base:** Header, Sidebar e aplicação do Design System (Cores/Tipografia).
 
 ---
 
@@ -79,8 +79,8 @@ Este roadmap detalha as fases de desenvolvimento do projeto Athlon, permitindo u
 ## 📅 Status Atual
 | Fase | Status | Progresso |
 | :--- | :--- | :--- |
-| **Fase 1** | 🟢 Iniciada | 15% |
-| **Fase 2** | ⚪ Planejada | 0% |
+| **Fase 1** | ✅ Concluída | 100% |
+| **Fase 2** | 🟢 Próxima | 0% |
 | **Fase 3** | ⚪ Planejada | 0% |
 
 ---

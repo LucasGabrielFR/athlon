@@ -8,9 +8,11 @@ export default function Home() {
       </div>
 
       <div className="relative flex flex-col items-center">
-        <h1 className="text-6xl font-bold tracking-tighter mb-4 text-transparent bg-clip-text bg-gradient-to-r from-ice to-azure">
-          ATHLON
-        </h1>
+        <img 
+          src="/logo/athlon-padrao-sem-bg.png" 
+          alt="Athlon Logo" 
+          className="h-24 w-auto mb-6"
+        />
         <p className="text-xl text-azure font-medium mb-12 uppercase tracking-widest">
           Motor de Competições Modular
         </p>
