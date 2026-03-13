@@ -49,6 +49,8 @@ export async function updateProfileAction(formData: FormData) {
 export async function addPlayerModalityAction(formData: FormData) {
   const userId = await getSessionUserId();
   const modalityId = Number(formData.get('modalityId'));
+  const primaryPositionId = formData.get('primaryPositionId') ? Number(formData.get('primaryPositionId')) : null;
+  const secondaryPositionId = formData.get('secondaryPositionId') ? Number(formData.get('secondaryPositionId')) : null;
 
   if (!modalityId) return;
 
@@ -61,7 +63,12 @@ export async function addPlayerModalityAction(formData: FormData) {
   });
 
   if (!existing) {
-    await db.insert(playerModalities).values({ userId, modalityId });
+    await db.insert(playerModalities).values({ 
+      userId, 
+      modalityId,
+      primaryPositionId,
+      secondaryPositionId,
+    });
   }
 
   revalidatePath('/dashboard/profile');
@@ -98,5 +105,28 @@ export async function setActiveModalityAction(formData: FormData) {
   }
 
   revalidatePath('/dashboard');
+  revalidatePath('/dashboard/profile');
+}
+
+export async function updatePlayerModalityPositionsAction(formData: FormData) {
+  const userId = await getSessionUserId();
+  const modalityId = Number(formData.get('modalityId'));
+  const primaryPositionId = formData.get('primaryPositionId') ? Number(formData.get('primaryPositionId')) : null;
+  const secondaryPositionId = formData.get('secondaryPositionId') ? Number(formData.get('secondaryPositionId')) : null;
+
+  if (!modalityId) return;
+
+  await db.update(playerModalities)
+    .set({
+      primaryPositionId,
+      secondaryPositionId,
+    })
+    .where(
+      and(
+        eq(playerModalities.userId, userId),
+        eq(playerModalities.modalityId, modalityId),
+      )
+    );
+
   revalidatePath('/dashboard/profile');
 }

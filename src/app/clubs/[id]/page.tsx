@@ -1,6 +1,6 @@
 import { auth } from '@/auth';
 import { db } from '@/db';
-import { clubs, clubMembers, clubInvitations, users, modalities } from '@/db/schema';
+import { clubs, clubMembers, clubInvitations, users, modalities, positions, playerModalities } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
@@ -24,10 +24,11 @@ export default async function ClubShowcasePage({
   });
   if (!club) notFound();
 
-  // Members
+  // Members with positions
   const members = await db
     .select({
       memberId: clubMembers.id,
+      userId: clubMembers.userId,
       role: clubMembers.role,
       joinedAt: clubMembers.joinedAt,
       userName: users.name,
@@ -35,19 +36,22 @@ export default async function ClubShowcasePage({
       userImage: users.image,
       modalityName: modalities.name,
       modalityId: modalities.id,
+      primaryPosition: {
+        name: positions.name,
+        abbreviation: positions.abbreviation,
+      },
     })
     .from(clubMembers)
     .innerJoin(users, eq(clubMembers.userId, users.id))
     .innerJoin(modalities, eq(clubMembers.modalityId, modalities.id))
+    .leftJoin(playerModalities, and(
+      eq(playerModalities.userId, clubMembers.userId),
+      eq(playerModalities.modalityId, clubMembers.modalityId)
+    ))
+    .leftJoin(positions, eq(playerModalities.primaryPositionId, positions.id))
     .where(eq(clubMembers.clubId, clubId));
 
   // Is the visitor already a member?
-  const isMember = userId
-    ? members.some((m) => {
-        return false; // we don't have userId in members select; check separately
-      })
-    : false;
-
   const myMembership = userId
     ? await db.query.clubMembers.findFirst({
         where: and(eq(clubMembers.clubId, clubId), eq(clubMembers.userId, userId)),
@@ -81,7 +85,7 @@ export default async function ClubShowcasePage({
   const isPresident = club.presidentId === userId;
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8">
+    <div className="max-w-4xl mx-auto space-y-8">
       {/* Hero */}
       <div className="bg-slate rounded-2xl border border-azure/10 p-8">
         <div className="flex items-start gap-6">
@@ -123,17 +127,23 @@ export default async function ClubShowcasePage({
           )}
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 gap-4 mt-6 pt-6 border-t border-azure/10">
+        {/* Stats Summary */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 pt-6 border-t border-azure/10">
           <div>
-            <p className="text-2xl font-black text-ice">
-              {members.filter((m) => m.role !== 'president').length}
-            </p>
-            <p className="text-ice/40 text-sm">Jogadores no elenco</p>
+            <p className="text-2xl font-black text-ice">{members.length}</p>
+            <p className="text-[10px] text-ice/40 uppercase tracking-widest font-bold">Membros</p>
           </div>
           <div>
             <p className="text-2xl font-black text-ice">{Object.keys(byModality).length}</p>
-            <p className="text-ice/40 text-sm">Modalidade{Object.keys(byModality).length !== 1 ? 's' : ''}</p>
+            <p className="text-[10px] text-ice/40 uppercase tracking-widest font-bold">Modalidades</p>
+          </div>
+          <div>
+            <p className="text-2xl font-black text-emerald-400">0</p>
+            <p className="text-[10px] text-ice/40 uppercase tracking-widest font-bold">Títulos</p>
+          </div>
+          <div>
+            <p className="text-2xl font-black text-azure">0%</p>
+            <p className="text-[10px] text-ice/40 uppercase tracking-widest font-bold">Winrate</p>
           </div>
         </div>
       </div>
@@ -184,36 +194,65 @@ export default async function ClubShowcasePage({
 
       {/* Roster by modality */}
       {Object.entries(byModality).map(([modalityName, modalityMembers]) => (
-        <div key={modalityName} className="bg-slate rounded-xl border border-azure/10 p-6">
-          <h3 className="text-ice font-bold text-lg mb-4">🎮 {modalityName}</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {modalityMembers.map((m) => (
-              <div
-                key={m.memberId}
-                className="flex items-center gap-3 bg-midnight/40 rounded-lg px-4 py-3"
-              >
-                <div className="w-9 h-9 rounded-full bg-azure/10 flex items-center justify-center text-sm font-bold text-azure shrink-0">
-                  {m.userName.charAt(0).toUpperCase()}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-ice text-sm font-semibold truncate">{m.userName}</p>
-                  {m.userNickname && (
-                    <p className="text-azure/60 text-xs font-mono truncate">@{m.userNickname}</p>
-                  )}
-                </div>
-                <span
-                  className={`ml-auto text-xs px-2 py-0.5 rounded-full shrink-0 ${
-                    m.role === 'president'
-                      ? 'bg-amber-500/15 text-amber-400'
-                      : m.role === 'captain'
-                      ? 'bg-azure/15 text-azure'
-                      : 'bg-transparent text-ice/30'
-                  }`}
-                >
-                  {m.role === 'president' ? '👑' : m.role === 'captain' ? '⚡' : ''}
-                </span>
-              </div>
-            ))}
+        <div key={modalityName} className="bg-slate rounded-xl border border-azure/10 overflow-hidden">
+          <div className="px-6 py-4 border-b border-azure/10 flex items-center justify-between bg-midnight/20">
+            <h3 className="text-ice font-bold text-lg flex items-center gap-2">
+              <span className="text-azure">🎮</span> {modalityName}
+            </h3>
+            <span className="text-xs text-ice/30 uppercase tracking-widest font-bold">
+              {modalityMembers.length} Jogador{modalityMembers.length !== 1 ? 'es' : ''}
+            </span>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-midnight/40">
+                  <th className="px-6 py-3 text-[10px] font-bold text-ice/40 uppercase tracking-widest whitespace-nowrap">Posição</th>
+                  <th className="px-6 py-3 text-[10px] font-bold text-ice/40 uppercase tracking-widest whitespace-nowrap">Jogador</th>
+                  <th className="px-6 py-3 text-[10px] font-bold text-ice/40 uppercase tracking-widest whitespace-nowrap">Nick</th>
+                  <th className="px-6 py-3 text-[10px] font-bold text-ice/40 uppercase tracking-widest whitespace-nowrap text-right">Estatísticas</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-azure/5">
+                {modalityMembers.map((m) => (
+                  <tr key={m.memberId} className="hover:bg-azure/5 transition-colors group">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {m.primaryPosition ? (
+                        <span className="text-xs bg-azure/5 text-azure px-2 py-1 rounded border border-azure/10 font-mono" title={m.primaryPosition.name}>
+                          {m.primaryPosition.abbreviation || m.primaryPosition.name}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-ice/20 italic">N/A</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-azure/10 flex items-center justify-center text-xs font-bold text-azure shrink-0">
+                          {m.userName.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="text-ice text-sm font-semibold group-hover:text-azure transition-colors">
+                          {m.userName}
+                          {m.userId === club.presidentId && <span className="ml-2" title="Presidente">👑</span>}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap font-mono text-xs text-azure/60">
+                      {m.userNickname ? `@${m.userNickname}` : '—'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-xs text-ice/60">0 Partidas</span>
+                        <div className="flex gap-2">
+                          <span className="text-[10px] text-emerald-400">0V</span>
+                          <span className="text-[10px] text-rose-400">0D</span>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       ))}

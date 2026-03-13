@@ -1,6 +1,6 @@
 import { auth } from '@/auth';
 import { db } from '@/db';
-import { clubs, clubMembers, clubInvitations, users, modalities } from '@/db/schema';
+import { clubs, clubMembers, clubInvitations, users, modalities, positions, playerModalities } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
@@ -31,7 +31,7 @@ export default async function ClubManagePage({
   // Only the president can access this page
   if (club.presidentId !== userId) redirect(`/clubs/${clubId}`);
 
-  // Club members grouped by modality
+  // Club members grouped by modality with positions
   const members = await db
     .select({
       memberId: clubMembers.id,
@@ -42,13 +42,23 @@ export default async function ClubManagePage({
       userNickname: users.nickname,
       modalityId: modalities.id,
       modalityName: modalities.name,
+      primaryPosition: {
+        name: positions.name,
+        abbreviation: positions.abbreviation,
+      },
     })
     .from(clubMembers)
     .innerJoin(users, eq(clubMembers.userId, users.id))
     .innerJoin(modalities, eq(clubMembers.modalityId, modalities.id))
+    .leftJoin(playerModalities, and(
+      eq(playerModalities.userId, clubMembers.userId),
+      eq(playerModalities.modalityId, clubMembers.modalityId)
+    ))
+    .leftJoin(positions, eq(playerModalities.primaryPositionId, positions.id))
     .where(eq(clubMembers.clubId, clubId));
 
-  // Pending join requests (players who want in)
+  // ... (rest of the data fetching remains similar)
+  // Pending join requests
   const joinRequests = await db
     .select({
       inviteId: clubInvitations.id,
@@ -71,7 +81,7 @@ export default async function ClubManagePage({
       ),
     );
 
-  // Pending outgoing invites (president invited a player waiting for them)
+  // Pending outgoing invites
   const outgoingInvites = await db
     .select({
       inviteId: clubInvitations.id,
@@ -94,14 +104,16 @@ export default async function ClubManagePage({
       ),
     );
 
-  // All modalities for invite form
-  const allModalities = await db.query.modalities.findMany({
-    where: eq(modalities.isActive, true),
-  });
+  // Group members by modality
+  const byModality = members.reduce<Record<string, typeof members>>((acc, m) => {
+    if (!acc[m.modalityName]) acc[m.modalityName] = [];
+    acc[m.modalityName].push(m);
+    return acc;
+  }, {});
 
   return (
     <div className="space-y-8">
-      {/* Header */}
+      {/* ... (Header components) */}
       <div className="flex items-start justify-between">
         <div>
           <Link
@@ -185,68 +197,118 @@ export default async function ClubManagePage({
         </div>
       )}
 
-      {/* Invite Player Form */}
-      <div className="bg-slate rounded-xl border border-azure/10 p-6">
-        <h3 className="text-ice font-bold text-lg mb-4">Convidar Jogador</h3>
-        <form action={invitePlayerAction} className="space-y-4">
-          <input type="hidden" name="clubId" value={clubId} />
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="sm:col-span-1">
-              <label className="block text-ice/50 text-xs font-medium mb-1.5 uppercase tracking-wider">
-                ID do Jogador
-              </label>
-              <input
-                name="targetUserId"
-                type="number"
-                required
-                placeholder="ex: 42"
-                className="w-full bg-midnight border border-azure/20 text-ice rounded-lg px-3 py-2.5 placeholder-ice/20 focus:outline-none focus:border-azure/50 text-sm transition-colors"
-              />
-              <p className="text-ice/30 text-xs mt-1">User ID numérico do jogador.</p>
+      {/* Invite CTA */}
+      <div className="bg-slate rounded-xl border border-azure/20 p-8 flex flex-col items-center text-center shadow-lg shadow-azure/5">
+        <div className="w-16 h-16 rounded-full bg-azure/10 flex items-center justify-center text-3xl mb-4">
+          🔎
+        </div>
+        <h3 className="text-ice font-bold text-xl mb-2">Procurando Reforços?</h3>
+        <p className="text-ice/40 text-sm max-w-md mb-6">
+          Visite nosso Mercado de Jogadores para encontrar talentos filtrados por modalidade e posição. Convide-os diretamente de seus perfis.
+        </p>
+        <Link
+          href="/dashboard/players"
+          className="bg-azure hover:bg-azure/80 text-midnight font-bold px-8 py-3 rounded-xl transition-all shadow-lg shadow-azure/10"
+        >
+          Explorar Mercado de Jogadores
+        </Link>
+      </div>
+
+      {/* Roster grouped by modality */}
+      <div className="space-y-6">
+        <h3 className="text-ice font-black text-xl flex items-center gap-2">
+          👥 Elenco do Clube
+        </h3>
+        {Object.entries(byModality).map(([modalityName, modalityMembers]) => (
+          <div key={modalityName} className="bg-slate rounded-xl border border-azure/10 overflow-hidden shadow-xl">
+            <div className="px-6 py-4 border-b border-azure/10 flex items-center justify-between bg-midnight/20">
+              <h4 className="text-ice font-bold flex items-center gap-2">
+                <span className="text-azure">🎮</span> {modalityName}
+              </h4>
+              <span className="text-[10px] text-ice/30 uppercase tracking-widest font-black">
+                {modalityMembers.length} Jogador{modalityMembers.length !== 1 ? 'es' : ''}
+              </span>
             </div>
-            <div className="sm:col-span-1">
-              <label className="block text-ice/50 text-xs font-medium mb-1.5 uppercase tracking-wider">
-                Modalidade
-              </label>
-              <select
-                name="modalityId"
-                required
-                className="w-full bg-midnight border border-azure/20 text-ice rounded-lg px-3 py-2.5 focus:outline-none focus:border-azure/50 text-sm transition-colors"
-              >
-                <option value="">Selecione...</option>
-                {allModalities.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="sm:col-span-1">
-              <label className="block text-ice/50 text-xs font-medium mb-1.5 uppercase tracking-wider">
-                Mensagem <span className="text-ice/30 normal-case">(opcional)</span>
-              </label>
-              <input
-                name="message"
-                placeholder="ex: Temos uma vaga de goleiro"
-                className="w-full bg-midnight border border-azure/20 text-ice rounded-lg px-3 py-2.5 placeholder-ice/20 focus:outline-none focus:border-azure/50 text-sm transition-colors"
-              />
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-midnight/40">
+                    <th className="px-6 py-3 text-[10px] font-bold text-ice/40 uppercase tracking-widest">Posição</th>
+                    <th className="px-6 py-3 text-[10px] font-bold text-ice/40 uppercase tracking-widest">Jogador</th>
+                    <th className="px-6 py-3 text-[10px] font-bold text-ice/40 uppercase tracking-widest whitespace-nowrap">Status/Função</th>
+                    <th className="px-6 py-3 text-[10px] font-bold text-ice/40 uppercase tracking-widest text-right">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-azure/5">
+                  {modalityMembers.map((m) => (
+                    <tr key={m.memberId} className="hover:bg-azure/5 transition-colors group">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {m.primaryPosition ? (
+                          <span className="text-xs bg-azure/5 text-azure px-2 py-1 rounded border border-azure/10 font-mono" title={m.primaryPosition.name}>
+                            {m.primaryPosition.abbreviation || m.primaryPosition.name}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-ice/20 italic">N/A</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-azure/10 flex items-center justify-center text-xs font-bold text-azure shrink-0">
+                            {m.userName.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="text-ice text-sm font-semibold group-hover:text-azure transition-colors">{m.userName}</p>
+                            {m.userNickname && <p className="text-azure/40 text-[10px] font-mono leading-none mt-0.5">@{m.userNickname}</p>}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`text-[10px] px-2 py-1 rounded-full font-black uppercase tracking-tighter ${
+                            m.userId === club.presidentId
+                              ? 'bg-amber-500/15 text-amber-400'
+                              : m.role === 'captain'
+                              ? 'bg-azure/15 text-azure'
+                              : 'bg-ice/5 text-ice/40'
+                          }`}
+                        >
+                          {m.userId === club.presidentId ? '👑 Presidente' : m.role === 'captain' ? '⚡ Capitão' : 'Jogador'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        {m.userId !== club.presidentId && (
+                          <form action={dismissPlayerAction}>
+                            <input type="hidden" name="memberId" value={m.memberId} />
+                            <input type="hidden" name="clubId" value={clubId} />
+                            <button
+                              type="submit"
+                              className="text-[10px] font-bold text-rose-400/50 hover:text-rose-400 border border-rose-500/0 hover:border-rose-500/30 px-3 py-1.5 rounded uppercase tracking-widest transition-all hover:bg-rose-500/5"
+                            >
+                              Dispensar
+                            </button>
+                          </form>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              className="bg-azure text-midnight font-bold text-sm px-5 py-2.5 rounded-lg hover:bg-azure/80 transition-colors"
-            >
-              📨 Enviar Convite
-            </button>
+        ))}
+
+        {members.length === 0 && (
+          <div className="bg-slate rounded-xl border border-azure/10 p-12 text-center text-ice/20 font-bold uppercase tracking-widest italic">
+            Nenhum membro no elenco até o momento.
           </div>
-        </form>
+        )}
       </div>
 
       {/* Outgoing Invites */}
       {outgoingInvites.length > 0 && (
-        <div className="bg-slate rounded-xl border border-azure/10 p-6">
-          <h3 className="text-ice font-semibold mb-3">
+        <div className="bg-slate rounded-xl border border-azure/10 p-6 opacity-60">
+          <h3 className="text-ice font-semibold mb-3 text-sm uppercase tracking-widest">
             Convites Aguardando Resposta ({outgoingInvites.length})
           </h3>
           <div className="space-y-2">
@@ -262,73 +324,16 @@ export default async function ClubManagePage({
                       <span className="text-azure text-xs ml-2 font-mono">@{inv.userNickname}</span>
                     )}
                   </p>
-                  <p className="text-ice/40 text-xs mt-0.5">{inv.modalityName}</p>
+                  <p className="text-ice/40 text-[10px] mt-0.5 uppercase font-bold">{inv.modalityName}</p>
                 </div>
-                <span className="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded-full">
-                  Aguardando...
+                <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded uppercase tracking-tighter">
+                  Pendente
                 </span>
               </div>
             ))}
           </div>
         </div>
       )}
-
-      {/* Roster */}
-      <div className="bg-slate rounded-xl border border-azure/10 p-6">
-        <h3 className="text-ice font-bold text-lg mb-4">
-          Elenco ({members.length} membro{members.length !== 1 ? 's' : ''})
-        </h3>
-        {members.length === 0 ? (
-          <p className="text-ice/30 text-sm text-center py-6">
-            Nenhum membro ainda. Use o formulário acima para convidar jogadores.
-          </p>
-        ) : (
-          <div className="space-y-2">
-            {members.map((m) => (
-              <div
-                key={m.memberId}
-                className="flex items-center justify-between bg-midnight/40 rounded-lg px-4 py-3"
-              >
-                <div>
-                  <p className="text-ice text-sm font-semibold">
-                    {m.userName}
-                    {m.userNickname && (
-                      <span className="text-azure text-xs ml-2 font-mono">@{m.userNickname}</span>
-                    )}
-                  </p>
-                  <p className="text-ice/40 text-xs mt-0.5">{m.modalityName}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span
-                    className={`text-xs px-2 py-1 rounded-full font-semibold ${
-                      m.role === 'president'
-                        ? 'bg-amber-500/15 text-amber-400'
-                        : m.role === 'captain'
-                        ? 'bg-azure/15 text-azure'
-                        : 'bg-ice/5 text-ice/40'
-                    }`}
-                  >
-                    {m.role === 'president' ? '👑 Presidente' : m.role === 'captain' ? '⚡ Capitão' : 'Jogador'}
-                  </span>
-                  {m.role !== 'president' && (
-                    <form action={dismissPlayerAction}>
-                      <input type="hidden" name="memberId" value={m.memberId} />
-                      <input type="hidden" name="clubId" value={clubId} />
-                      <button
-                        type="submit"
-                        className="text-xs text-rose-400/60 hover:text-rose-400 border border-rose-500/0 hover:border-rose-500/30 px-2 py-1 rounded transition-colors"
-                        title="Dispensar jogador"
-                      >
-                        Dispensar
-                      </button>
-                    </form>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 }

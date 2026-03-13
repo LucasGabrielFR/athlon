@@ -80,6 +80,9 @@ A plataforma utiliza um "Wizard" de criação para Presidentes de Liga configura
 
 -   **Formatos:** Pontos Corridos, Mata-mata ou Híbrido.
 -   **Regras de Pontuação:** Customizável (Vitória/Empate/Derrota).
+-   **Gestão de Elenco na Competição:**
+    -   **Limite de Jogadores:** Possibilidade de definir um teto máximo de atletas que podem ser inscritos por clube na competição.
+    -   **Janelas de Inscrição:** Configuração de períodos recorrentes para novas inscrições de jogadores (Semanal, Quinzenal, Mensal, etc.), que permanecem ativos até o término do torneio.
 -   **Financeiro:** Taxas de inscrição e gestão de *Prize Pool*.
 -   **Validação:** Sistema de "Report" onde os clubes enviam provas e a liga valida.
 

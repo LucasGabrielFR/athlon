@@ -4,6 +4,7 @@ import { auth } from '@/auth';
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: '📊' },
   { href: '/dashboard/profile', label: 'Meu Perfil', icon: '👤' },
+  { href: '/dashboard/players', label: 'Jogadores', icon: '👥' },
   { href: '/dashboard/clubs', label: 'Clubes', icon: '🛡️' },
   { href: '/dashboard/competitions', label: 'Competições', icon: '🏆' },
 ];

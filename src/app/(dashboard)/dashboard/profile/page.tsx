@@ -1,9 +1,11 @@
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import { db } from '@/db';
-import { playerProfiles, playerModalities, modalities, users } from '@/db/schema';
+import { playerProfiles, users, modalities } from '@/db/schema';
 import { eq } from 'drizzle-orm';
-import { updateProfileAction, addPlayerModalityAction, removePlayerModalityAction, setActiveModalityAction } from '@/app/actions/profile';
+import { updateProfileAction } from '@/app/actions/profile';
+import AddModalityForm from './AddModalityForm';
+import LinkedModalityItem from './LinkedModalityItem';
 
 export default async function ProfilePage() {
   const session = await auth();
@@ -14,17 +16,32 @@ export default async function ProfilePage() {
   const user = await db.query.users.findFirst({ where: eq(users.id, userId) });
   const profile = await db.query.playerProfiles.findFirst({ where: eq(playerProfiles.userId, userId) });
 
-  // Player's linked modalities
-  const linked = await db
-    .select({ modality: modalities })
-    .from(playerModalities)
-    .innerJoin(modalities, eq(playerModalities.modalityId, modalities.id))
-    .where(eq(playerModalities.userId, userId));
+  // Player's linked modalities with positions
+  const linked = await db.query.playerModalities.findMany({
+    where: (pm, { eq }) => eq(pm.userId, userId),
+    with: {
+      modality: {
+        with: {
+          positions: true
+        }
+      },
+      primaryPosition: true,
+      secondaryPosition: true,
+    }
+  });
 
   // All modalities for the "add" selector
-  const linkedIds = linked.map((l) => l.modality.id);
-  const allModalities = await db.select().from(modalities).orderBy(modalities.name);
-  const available = allModalities.filter((m) => !linkedIds.includes(m.id));
+  const linkedIds = linked.map((l) => l.modalityId);
+  const availableModalities = await db.query.modalities.findMany({
+    where: (m, { and, eq, notInArray }) => and(
+      eq(m.isActive, true),
+      linkedIds.length > 0 ? notInArray(m.id, linkedIds) : undefined
+    ),
+    with: {
+      positions: true
+    },
+    orderBy: (m, { asc }) => [asc(m.name)],
+  });
 
   const activeModalityId = profile?.activeModalityId;
 
@@ -105,66 +122,22 @@ export default async function ProfilePage() {
             {linked.length === 0 ? (
               <p className="text-ice/30 text-sm mb-4">Você ainda não adicionou nenhuma modalidade.</p>
             ) : (
-              <div className="space-y-2 mb-6">
-                {linked.map(({ modality: m }) => (
-                  <div key={m.id} className={`flex items-center justify-between p-3 rounded-lg border transition-all ${
-                    activeModalityId === m.id
-                      ? 'border-azure bg-azure/10'
-                      : 'border-azure/10 hover:border-azure/30'
-                  }`}>
-                    <div className="flex items-center gap-3">
-                      <span className="text-xl">{m.isTeamBased ? '👥' : '🧍'}</span>
-                      <div>
-                        <p className="text-ice font-medium text-sm">{m.name}</p>
-                        {activeModalityId === m.id && (
-                          <p className="text-xs text-azure">● Modalidade ativa</p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      {activeModalityId !== m.id && (
-                        <form action={setActiveModalityAction}>
-                          <input type="hidden" name="modalityId" value={m.id} />
-                          <button type="submit" className="text-xs text-azure/60 hover:text-azure transition-colors px-2 py-1 rounded hover:bg-azure/10">
-                            Ativar
-                          </button>
-                        </form>
-                      )}
-                      <form action={removePlayerModalityAction}>
-                        <input type="hidden" name="modalityId" value={m.id} />
-                        <button type="submit" className="text-xs text-red-400/50 hover:text-red-400 transition-colors px-2 py-1 rounded hover:bg-red-400/10">
-                          Remover
-                        </button>
-                      </form>
-                    </div>
-                  </div>
+              <div className="space-y-3 mb-6">
+                {linked.map((item) => (
+                  <LinkedModalityItem 
+                    key={item.id} 
+                    item={item as any} 
+                    isActive={activeModalityId === item.modalityId} 
+                  />
                 ))}
               </div>
             )}
 
-            {available.length > 0 && (
-              <form action={addPlayerModalityAction} className="flex gap-3">
-                <select
-                  name="modalityId"
-                  className="flex-1 bg-navy border border-azure/20 rounded-lg px-4 py-2.5 text-ice focus:outline-none focus:border-azure transition-colors text-sm"
-                >
-                  <option value="">Selecione uma modalidade...</option>
-                  {available.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.isTeamBased ? '👥' : '🧍'} {m.name}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="submit"
-                  className="bg-azure/10 text-azure border border-azure/30 font-bold px-4 py-2.5 rounded-lg hover:bg-azure hover:text-navy transition-colors text-sm whitespace-nowrap"
-                >
-                  + Adicionar
-                </button>
-              </form>
+            {availableModalities.length > 0 && (
+              <AddModalityForm modalities={availableModalities as any} />
             )}
 
-            {available.length === 0 && linked.length > 0 && (
+            {availableModalities.length === 0 && linked.length > 0 && (
               <p className="text-ice/20 text-xs">Você já pratica todas as modalidades disponíveis.</p>
             )}
           </div>

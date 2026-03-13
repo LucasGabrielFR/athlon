@@ -42,7 +42,10 @@ Este roadmap detalha as fases de desenvolvimento do projeto Athlon, permitindo u
 - [ ] **Configuração de Ligas:** Role "Presidente de Liga" e criação de entidades federativas.
 - [ ] **Wizard de Competição:** Interface passo-a-passo para criar torneios.
 - [ ] **Lógica de Formatos:** Implementação de Pontos Corridos e Mata-mata.
-- [ ] **Inscrições:** Sistema para clubes solicitarem participação em competições.
+- [ ] **Inscrições de Clubes:** Sistema para clubes solicitarem participação em competições.
+- [ ] **Gestão de Roster na Competição:**
+    - [ ] Limite máximo de jogadores por equipe participante.
+    - [ ] Configuração de janelas de inscrição recorrentes (Semanal, Quinzenal, Mensal).
 
 ---
 

@@ -171,7 +171,8 @@ export const playerModalities = mysqlTable('player_modalities', {
   id: serial('id').primaryKey(),
   userId: bigint('user_id', { mode: 'number', unsigned: true }).notNull().references(() => users.id, { onDelete: 'cascade' }),
   modalityId: bigint('modality_id', { mode: 'number', unsigned: true }).notNull().references(() => modalities.id, { onDelete: 'cascade' }),
-  positionId: bigint('position_id', { mode: 'number', unsigned: true }).references(() => positions.id),
+  primaryPositionId: bigint('primary_position_id', { mode: 'number', unsigned: true }).references(() => positions.id),
+  secondaryPositionId: bigint('secondary_position_id', { mode: 'number', unsigned: true }).references(() => positions.id),
   joinedAt: timestamp('joined_at').defaultNow(),
 });
 
@@ -228,4 +229,31 @@ export const modalitiesRelations = relations(modalities, ({ many }) => ({
   members: many(clubMembers),
   invitations: many(clubInvitations),
   competitions: many(competitions),
+  positions: many(positions),
+}));
+
+export const positionsRelations = relations(positions, ({ one }) => ({
+  modality: one(modalities, {
+    fields: [positions.modalityId],
+    references: [modalities.id],
+  }),
+}));
+
+export const playerModalitiesRelations = relations(playerModalities, ({ one }) => ({
+  user: one(users, {
+    fields: [playerModalities.userId],
+    references: [users.id],
+  }),
+  modality: one(modalities, {
+    fields: [playerModalities.modalityId],
+    references: [modalities.id],
+  }),
+  primaryPosition: one(positions, {
+    fields: [playerModalities.primaryPositionId],
+    references: [positions.id],
+  }),
+  secondaryPosition: one(positions, {
+    fields: [playerModalities.secondaryPositionId],
+    references: [positions.id],
+  }),
 }));

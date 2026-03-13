@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- **Mercado de Jogadores:** Nova listagem pública de talentos disponível em `/dashboard/players`.
+- **Filtros Avançados:** Busca de jogadores por modalidade, posição específica e status de disponibilidade (Free Agent).
+- **Perfis de Jogadores:** Páginas individuais exibindo especialidades, bio e clubes atuais de cada usuário.
+- **Convites via Perfil:** Presidentes de clube agora convidam jogadores diretamente de seus perfis, selecionando o clube e a modalidade desejada.
+- **Edição de Posições:** Jogadores agora podem alterar suas posições primária e secundária a qualquer momento diretamente no perfil.
+- **Planejamento Estratégico:** Atualizado "Action Plan" e "Roadmap" para incluir suporte a limite de jogadores e janelas de inscrição recorrentes em competições.
+
+### Changed
+- **Lógica de Recrutamento:** Removido o formulário de convite por ID numérico. O recrutamento agora é focado na descoberta de talentos através do Mercado.
+- **Estrutura de Membros:** O presidente do clube agora é integrado automaticamente ao elenco como jogador, sendo contabilizado nas estatísticas e exibido no plantel da modalidade principal.
+- **Interface de Elenco:** A exibição de jogadores nas telas do clube (pública e gestão) foi alterada para um formato de tabela, incluindo posição, nome, nickname e estatísticas de desempenho.
+- **Sidebar:** Adicionado link direto para o "Mercado de Jogadores".
 
 ## [0.3.0] - 2026-03-13
 

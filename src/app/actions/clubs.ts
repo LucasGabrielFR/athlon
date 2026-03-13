@@ -57,12 +57,12 @@ export async function createClubAction(formData: FormData) {
 
   if (!newClub?.id) redirect('/dashboard/clubs?error=creation_failed');
 
-  // Add president to club_members
+  // Add president to club_members as a player (they are president via clubs.presidentId)
   await db.insert(clubMembers).values({
     clubId: newClub.id,
     userId,
     modalityId,
-    role: 'president',
+    role: 'player',
   });
 
   // Upgrade user role to club_president
