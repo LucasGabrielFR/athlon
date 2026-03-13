@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-03-13
+
+### Added
+- **Sistema de Clubes:** Fundação de clubes com gestão de tag, logo e localização.
+- **Roster & Elenco:** Jogadores agora possuem vínculo formal com clubes em modalidades específicas.
+- **Invitations & Requests:** Sistema de "Portas Fechadas" — jogadores só entram em clubes se forem convidados (Presidente → Jogador) ou se pedirem entrada (Jogador → Clube + aprovação do Presidente).
+- **Dashboard do Clube:** Interface exclusiva para o Presidente gerenciar convites, pedidos pendentes e dispensar jogadores.
+- **Vitrine do Clube:** Página pública exibindo o elenco organizado por departamentos (modalidades).
+- **Drizzle Relations:** Implementação de relacionamentos no schema para consultas relacionais performantes via API de Query.
+- **RBAC Fase 3:** Proteção de rotas e ações para garantir que apenas o presidente gerencie seu próprio clube.
+
+### Changed
+- Dashboard Home: Banner atualizado para "Fase 3 em progresso" com alertas automáticos sobre novos convites.
+- Sidebar: Link "Clubes" ativo e integrado à navegação.
+
 ## [0.2.1] - 2026-03-12
 
 ### Added

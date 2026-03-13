@@ -29,10 +29,10 @@ Este roadmap detalha as fases de desenvolvimento do projeto Athlon, permitindo u
 ## 🛡️ Fase 3: Organizações & Clubes
 *Transformação do Jogador em Gestor e a criação da estrutura de equipes.*
 
-- [ ] **Criação de Clubes:** Fluxo de fundação e atribuição da role "Presidente de Clube".
-- [ ] **Gestão de Elenco (Roster):** Sistema de convites, aceites e dispensa de jogadores.
-- [ ] **Departamentos de Clube:** Vínculo de jogadores a modalidades específicas dentro do clube.
-- [ ] **Vitrine do Clube:** Página pública do clube com escudo e histórico básico.
+- [x] **Criação de Clubes:** Fluxo de fundação e atribuição da role "Presidente de Clube".
+- [x] **Gestão de Elenco (Roster):** Sistema de convites, aceites e dispensa de jogadores.
+- [x] **Departamentos de Clube:** Vínculo de jogadores a modalidades específicas dentro do clube.
+- [x] **Vitrine do Clube:** Página pública do clube com escudo e histórico básico.
 
 ---
 
@@ -81,7 +81,8 @@ Este roadmap detalha as fases de desenvolvimento do projeto Athlon, permitindo u
 | :--- | :--- | :--- |
 | **Fase 1** | ✅ Concluída | 100% |
 | **Fase 2** | ✅ Concluída | 100% |
-| **Fase 3** | 🟢 Próxima | 0% |
+| **Fase 3** | ✅ Concluída | 100% |
+| **Fase 4** | 🟢 Próxima | 0% |
 
 ---
 *Roadmap sujeito a ajustes conforme a evolução do projeto.*

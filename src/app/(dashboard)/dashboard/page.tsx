@@ -1,4 +1,8 @@
 import { auth } from '@/auth';
+import { db } from '@/db';
+import { clubInvitations } from '@/db/schema';
+import { eq, and } from 'drizzle-orm';
+import Link from 'next/link';
 
 const statCards = [
   { label: 'Modalidades', value: '–', icon: '🎮', hint: 'Em breve' },
@@ -9,6 +13,17 @@ const statCards = [
 
 export default async function DashboardPage() {
   const session = await auth();
+  const userId = Number((session?.user as { id?: string | number }).id);
+
+  // Fetch pending invitations for the user
+  const pendingInvites = await db.query.clubInvitations.findMany({
+    where: and(
+      eq(clubInvitations.userId, userId),
+      eq(clubInvitations.type, 'invite'),
+      eq(clubInvitations.status, 'pending')
+    ),
+    with: { club: true }
+  });
 
   return (
     <div className="space-y-8">
@@ -19,6 +34,25 @@ export default async function DashboardPage() {
         </h2>
         <p className="text-ice/40 mt-1">Bem-vindo ao seu painel de controle. O ecossistema competitivo te espera.</p>
       </div>
+
+      {/* Notifications / Alerts */}
+      {pendingInvites.length > 0 && (
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="text-xl">📨</span>
+            <div>
+              <p className="text-amber-400 font-bold text-sm">Você tem convite{pendingInvites.length > 1 ? 's' : ''} de clube!</p>
+              <p className="text-amber-400/60 text-xs">Acesse a aba de Clubes para aceitar ou recusar.</p>
+            </div>
+          </div>
+          <Link 
+            href="/dashboard/clubs" 
+            className="text-xs bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 font-bold px-3 py-1.5 rounded-lg transition-colors"
+          >
+            Ver Convites
+          </Link>
+        </div>
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -41,11 +75,11 @@ export default async function DashboardPage() {
       <div className="bg-slate rounded-xl border border-azure/20 p-6">
         <div className="flex items-center gap-3 mb-2">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span className="text-xs text-emerald-400 uppercase tracking-widest font-semibold">Fase 1 em progresso</span>
+          <span className="text-xs text-emerald-400 uppercase tracking-widest font-semibold">Fase 3 em progresso</span>
         </div>
-        <h3 className="text-ice font-bold text-lg">Fundação & Infraestrutura</h3>
+        <h3 className="text-ice font-bold text-lg">Organizações & Clubes</h3>
         <p className="text-ice/40 text-sm mt-1">
-          Autenticação implementada ✅ &nbsp;|&nbsp; RBAC configurado ✅ &nbsp;|&nbsp; Layout base no ar ✅
+          Fundação de clubes implementada ✅ &nbsp;|&nbsp; Sistema de convites ativo ✅ &nbsp;|&nbsp; Gestão de elenco liberada ✅
         </p>
       </div>
     </div>

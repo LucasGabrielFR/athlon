@@ -1,4 +1,5 @@
 import { mysqlTable, serial, varchar, text, timestamp, json, boolean, int, bigint } from 'drizzle-orm/mysql-core';
+import { relations } from 'drizzle-orm';
 
 // ──────────────────────────────────────────
 // USERS & AUTH
@@ -74,6 +75,35 @@ export const clubs = mysqlTable('clubs', {
 });
 
 // ──────────────────────────────────────────
+// CLUB MEMBERS (elenco aceito)
+// ──────────────────────────────────────────
+
+export const clubMembers = mysqlTable('club_members', {
+  id: serial('id').primaryKey(),
+  clubId: bigint('club_id', { mode: 'number', unsigned: true }).notNull().references(() => clubs.id, { onDelete: 'cascade' }),
+  userId: bigint('user_id', { mode: 'number', unsigned: true }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+  modalityId: bigint('modality_id', { mode: 'number', unsigned: true }).notNull().references(() => modalities.id),
+  role: varchar('role', { length: 50 }).notNull().default('player'), // player | captain | coach
+  joinedAt: timestamp('joined_at').defaultNow(),
+});
+
+// ──────────────────────────────────────────
+// CLUB INVITATIONS (convites e pedidos)
+// ──────────────────────────────────────────
+
+export const clubInvitations = mysqlTable('club_invitations', {
+  id: serial('id').primaryKey(),
+  clubId: bigint('club_id', { mode: 'number', unsigned: true }).notNull().references(() => clubs.id, { onDelete: 'cascade' }),
+  userId: bigint('user_id', { mode: 'number', unsigned: true }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+  modalityId: bigint('modality_id', { mode: 'number', unsigned: true }).notNull().references(() => modalities.id),
+  type: varchar('type', { length: 20 }).notNull(), // 'invite' | 'request'
+  status: varchar('status', { length: 20 }).notNull().default('pending'), // 'pending' | 'accepted' | 'rejected'
+  message: text('message'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// ──────────────────────────────────────────
 // COMPETITIONS
 // ──────────────────────────────────────────
 
@@ -145,3 +175,57 @@ export const playerModalities = mysqlTable('player_modalities', {
   joinedAt: timestamp('joined_at').defaultNow(),
 });
 
+// ──────────────────────────────────────────
+// RELATIONS
+// ──────────────────────────────────────────
+
+export const usersRelations = relations(users, ({ many }) => ({
+  memberships: many(clubMembers),
+  invitations: many(clubInvitations),
+  presidedClubs: many(clubs),
+}));
+
+export const clubsRelations = relations(clubs, ({ one, many }) => ({
+  president: one(users, {
+    fields: [clubs.presidentId],
+    references: [users.id],
+  }),
+  members: many(clubMembers),
+  invitations: many(clubInvitations),
+}));
+
+export const clubMembersRelations = relations(clubMembers, ({ one }) => ({
+  club: one(clubs, {
+    fields: [clubMembers.clubId],
+    references: [clubs.id],
+  }),
+  user: one(users, {
+    fields: [clubMembers.userId],
+    references: [users.id],
+  }),
+  modality: one(modalities, {
+    fields: [clubMembers.modalityId],
+    references: [modalities.id],
+  }),
+}));
+
+export const clubInvitationsRelations = relations(clubInvitations, ({ one }) => ({
+  club: one(clubs, {
+    fields: [clubInvitations.clubId],
+    references: [clubs.id],
+  }),
+  user: one(users, {
+    fields: [clubInvitations.userId],
+    references: [users.id],
+  }),
+  modality: one(modalities, {
+    fields: [clubInvitations.modalityId],
+    references: [modalities.id],
+  }),
+}));
+
+export const modalitiesRelations = relations(modalities, ({ many }) => ({
+  members: many(clubMembers),
+  invitations: many(clubInvitations),
+  competitions: many(competitions),
+}));

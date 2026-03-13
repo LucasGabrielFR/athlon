@@ -20,8 +20,8 @@ Diferente de sistemas estáticos, o Athlon funciona como uma **rede social de pe
 
 - **🔐 Admin:** Gestão de infraestrutura e regras globais.
 - **🏛️ Presidente de Liga:** Arquiteto de competições e moderador de ecossistemas.
-- **🛡️ Presidente de Clube:** Gestor de elenco e operações competitivas.
-- **👟 Jogador:** O "átomo" do sistema, focado em performance e evolução.
+- **🛡️ Presidente de Clube:** Gestor de elenco, responsável por fundar o clube e gerenciar convites/pedidos de entrada.
+- **👟 Jogador:** O "átomo" do sistema, focado em performance, podendo ingressar em clubes via convites ou solicitações.
 
 ---
 
