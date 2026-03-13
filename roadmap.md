@@ -19,10 +19,10 @@ Este roadmap detalha as fases de desenvolvimento do projeto Athlon, permitindo u
 ## 👤 Fase 2: Identidade & Modalidades
 *Definição do "átomo" do sistema e a flexibilidade técnica para suportar qualquer esporte.*
 
-- [ ] **Gestão de Modalidades (Admin):** CRUD para cadastrar esportes (Futebol, LoL, etc).
-- [ ] **Dicionário Técnico:** Cadastro de Posições e Tipos de Estatísticas por modalidade.
-- [ ] **Perfil do Jogador:** Cadastro de dados core e criação do `PlayerProfile` dinâmico.
-- [ ] **Context Switcher:** Interface para o jogador alternar entre modalidades.
+- [x] **Gestão de Modalidades (Admin):** CRUD para cadastrar esportes (Futebol, LoL, etc).
+- [x] **Dicionário Técnico:** Schema de Posições e Tipos de Estatísticas por modalidade.
+- [x] **Perfil do Jogador:** Cadastro de dados core e `PlayerProfile` dinâmico.
+- [x] **Context Switcher:** Interface para o jogador alternar entre modalidades.
 
 ---
 
@@ -80,8 +80,8 @@ Este roadmap detalha as fases de desenvolvimento do projeto Athlon, permitindo u
 | Fase | Status | Progresso |
 | :--- | :--- | :--- |
 | **Fase 1** | ✅ Concluída | 100% |
-| **Fase 2** | 🟢 Próxima | 0% |
-| **Fase 3** | ⚪ Planejada | 0% |
+| **Fase 2** | ✅ Concluída | 100% |
+| **Fase 3** | 🟢 Próxima | 0% |
 
 ---
 *Roadmap sujeito a ajustes conforme a evolução do projeto.*
