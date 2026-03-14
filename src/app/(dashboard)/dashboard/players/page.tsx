@@ -1,9 +1,11 @@
 import { auth } from '@/auth';
 import { db } from '@/db';
-import { users, playerProfiles, playerModalities, modalities, positions, clubMembers } from '@/db/schema';
+import { users, playerProfiles, playerModalities, modalities, positions, clubMembers, clubs } from '@/db/schema';
 import { eq, and, or, sql, isNull, inArray } from 'drizzle-orm';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+
+import { PlayerFilters } from './PlayerFilters';
 
 export default async function PlayersPage({
   searchParams,
@@ -16,7 +18,10 @@ export default async function PlayersPage({
   const params = await searchParams;
   const modalityFilter = params.modality ? Number(params.modality) : undefined;
   const positionFilter = params.position ? Number(params.position) : undefined;
-  const statusFilter = params.status as string | undefined; // 'free' or undefined (all)
+  const statusFilter = params.status as string | undefined;
+  const page = params.page ? Math.max(1, Number(params.page)) : 1;
+  const pageSize = 12;
+  const offset = (page - 1) * pageSize;
 
   // Fetch all modalities for the filter
   const allModalities = await db.query.modalities.findMany({
@@ -46,57 +51,100 @@ export default async function PlayersPage({
     conditions.push(isNull(clubMembers.id));
   }
 
-  const results = await db
-    .select({
-      id: users.id,
-      name: users.name,
-      nickname: users.nickname,
-      avatarUrl: playerProfiles.avatarUrl,
-      modalityId: playerModalities.modalityId,
-      modalityName: modalities.name,
-      primaryPos: {
-        id: playerModalities.primaryPositionId,
-      },
-      secondaryPos: {
-        id: playerModalities.secondaryPositionId,
-      },
-      isInClub: sql<boolean>`${clubMembers.id} IS NOT NULL`,
-    })
+  // 1. Get total count of distinct players matching filters
+  const countQuery = db
+    .select({ count: sql<number>`count(distinct ${users.id})` })
     .from(users)
-    .innerJoin(playerProfiles, eq(users.id, playerProfiles.userId))
-    .innerJoin(playerModalities, eq(users.id, playerModalities.userId))
-    .innerJoin(modalities, eq(playerModalities.modalityId, modalities.id))
+    .leftJoin(playerModalities, eq(users.id, playerModalities.userId))
+    .leftJoin(clubMembers, and(
+      eq(users.id, clubMembers.userId),
+      eq(playerModalities.modalityId, clubMembers.modalityId)
+    ))
+    .where(and(...conditions));
+  
+  const totalItemsResult = await countQuery;
+  const totalItems = Number(totalItemsResult[0].count);
+  const totalPages = Math.ceil(totalItems / pageSize);
+
+  // 2. Get paginated user IDs
+  const paginatedIdsQuery = db
+    .select({ id: users.id })
+    .from(users)
+    .leftJoin(playerModalities, eq(users.id, playerModalities.userId))
     .leftJoin(clubMembers, and(
       eq(users.id, clubMembers.userId),
       eq(playerModalities.modalityId, clubMembers.modalityId)
     ))
     .where(and(...conditions))
-    .orderBy(users.name);
+    .groupBy(users.id)
+    .orderBy(users.name)
+    .limit(pageSize)
+    .offset(offset);
 
-  // Group by user so we don't show the same player twice if they have multiple modalities matching (though filters usually restrict to one)
-  // But if no filters are applied, a player with 2 modalities appears twice.
-  // Actually, for a marketplace, seeing them per modality might be fine, but grouping is better.
+  const paginatedIds = await paginatedIdsQuery;
+  const userIds = paginatedIds.map(u => u.id);
+
+  let players: any[] = [];
   
-  const playersMap = new Map();
-  for (const r of results) {
-    if (!playersMap.has(r.id)) {
-      playersMap.set(r.id, {
-        id: r.id,
-        name: r.name,
-        nickname: r.nickname,
-        avatarUrl: r.avatarUrl,
-        modalities: [],
-      });
+  if (userIds.length > 0) {
+    // 3. Fetch full details for these specific user IDs
+    const results = await db
+      .select({
+        id: users.id,
+        name: users.name,
+        nickname: users.nickname,
+        avatarUrl: playerProfiles.avatarUrl,
+        modalityId: playerModalities.modalityId,
+        modalityName: modalities.name,
+        clubName: clubs.name,
+        clubId: clubs.id,
+        isInClub: sql<boolean>`${clubMembers.id} IS NOT NULL`,
+      })
+      .from(users)
+      .leftJoin(playerProfiles, eq(users.id, playerProfiles.userId))
+      .leftJoin(playerModalities, eq(users.id, playerModalities.userId))
+      .leftJoin(modalities, eq(playerModalities.modalityId, modalities.id))
+      .leftJoin(clubMembers, and(
+        eq(users.id, clubMembers.userId),
+        eq(playerModalities.modalityId, clubMembers.modalityId)
+      ))
+      .leftJoin(clubs, eq(clubMembers.clubId, clubs.id))
+      .where(inArray(users.id, userIds))
+      .orderBy(users.name);
+
+    const playersMap = new Map();
+    for (const r of results) {
+      if (!playersMap.has(r.id)) {
+        playersMap.set(r.id, {
+          id: r.id,
+          name: r.name,
+          nickname: r.nickname,
+          avatarUrl: r.avatarUrl,
+          modalities: [],
+        });
+      }
+      const p = playersMap.get(r.id);
+      if (r.modalityId) {
+        p.modalities.push({
+          id: r.modalityId,
+          name: r.modalityName,
+          isInClub: r.isInClub,
+          clubId: r.clubId,
+          clubName: r.clubName,
+        });
+      }
     }
-    const p = playersMap.get(r.id);
-    p.modalities.push({
-      id: r.modalityId,
-      name: r.modalityName,
-      isInClub: r.isInClub,
-    });
+    players = Array.from(playersMap.values());
   }
 
-  const players = Array.from(playersMap.values());
+  const getPageUrl = (p: number) => {
+    const sp = new URLSearchParams();
+    if (modalityFilter) sp.set('modality', modalityFilter.toString());
+    if (positionFilter) sp.set('position', positionFilter.toString());
+    if (statusFilter) sp.set('status', statusFilter);
+    sp.set('page', p.toString());
+    return `?${sp.toString()}`;
+  };
 
   return (
     <div className="space-y-8">
@@ -108,59 +156,15 @@ export default async function PlayersPage({
       </div>
 
       {/* Filters */}
-      <div className="bg-slate rounded-xl border border-azure/10 p-5">
-        <form className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-[10px] font-bold text-azure/50 uppercase tracking-widest mb-2">Modalidade</label>
-            <select
-              name="modality"
-              defaultValue={modalityFilter}
-              className="w-full bg-midnight border border-azure/20 text-ice rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-azure transition-colors"
-            >
-              <option value="">Todas</option>
-              {allModalities.map((m) => (
-                <option key={m.id} value={m.id}>{m.name}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-[10px] font-bold text-azure/50 uppercase tracking-widest mb-2">Posição</label>
-            <select
-              name="position"
-              defaultValue={positionFilter}
-              disabled={!modalityFilter}
-              className="w-full bg-midnight border border-azure/20 text-ice rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-azure transition-colors disabled:opacity-50"
-            >
-              <option value="">Todas</option>
-              {availablePositions.map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-[10px] font-bold text-azure/50 uppercase tracking-widest mb-2">Status</label>
-            <select
-              name="status"
-              defaultValue={statusFilter}
-              className="w-full bg-midnight border border-azure/20 text-ice rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-azure transition-colors"
-            >
-              <option value="all">Todos</option>
-              <option value="free">Sem Clube (Free Agent)</option>
-            </select>
-          </div>
-
-          <div className="flex items-end">
-            <button
-              type="submit"
-              className="w-full bg-azure text-midnight font-bold py-2 rounded-lg hover:bg-azure/80 transition-all text-sm"
-            >
-              Filtrar
-            </button>
-          </div>
-        </form>
-      </div>
+      <PlayerFilters
+        modalities={allModalities.map(m => ({ id: m.id, name: m.name }))}
+        positions={availablePositions.map(p => ({ id: p.id, name: p.name }))}
+        initialFilters={{
+          modality: modalityFilter,
+          position: positionFilter,
+          status: statusFilter,
+        }}
+      />
 
       {/* Grid */}
       {players.length === 0 ? (
@@ -170,48 +174,100 @@ export default async function PlayersPage({
           <Link href="/dashboard/players" className="text-azure text-sm hover:underline mt-2 inline-block">Limpar filtros</Link>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {players.map((p) => (
-            <Link
-              key={p.id}
-              href={`/dashboard/players/${p.id}`}
-              className="group bg-slate rounded-xl border border-azure/10 hover:border-azure/30 hover:bg-azure/5 transition-all p-5 flex flex-col items-center text-center cursor-pointer"
-            >
-              <div className="relative mb-4">
-                {p.avatarUrl ? (
-                  <img src={p.avatarUrl} alt={p.name} className="w-20 h-20 rounded-full object-cover border-2 border-azure/20 group-hover:border-azure/40 transition-colors" />
-                ) : (
-                  <div className="w-20 h-20 rounded-full bg-midnight border-2 border-azure/10 flex items-center justify-center text-2xl font-black text-azure/40 uppercase group-hover:border-azure/40 transition-colors">
-                    {p.name[0]}
-                  </div>
-                )}
-              </div>
-              
-              <h3 className="text-ice font-bold group-hover:text-azure transition-colors">{p.name}</h3>
-              <p className="text-azure/60 font-mono text-[10px] uppercase tracking-wider mb-4">@{p.nickname || 'vaga'}</p>
-
-              <div className="w-full flex flex-wrap justify-center gap-2">
-                {p.modalities.map((m: any) => (
-                  <div key={m.id} className="flex flex-col items-center">
-                    <span className="text-[10px] bg-midnight border border-azure/10 px-2 py-1 rounded text-ice/70 whitespace-nowrap">
-                      {m.name}
+        <div className="space-y-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {players.map((p) => (
+              <Link
+                key={p.id}
+                href={`/dashboard/players/${p.id}`}
+                className="group bg-slate rounded-xl border border-azure/10 hover:border-azure/30 hover:bg-azure/5 transition-all p-5 flex flex-col items-center text-center cursor-pointer"
+              >
+                <div className="relative mb-4">
+                  {p.avatarUrl ? (
+                    <img src={p.avatarUrl} alt={p.name} className="w-20 h-20 rounded-full object-cover border-2 border-azure/20 group-hover:border-azure/40 transition-colors" />
+                  ) : (
+                    <div className="w-20 h-20 rounded-full bg-midnight border-2 border-azure/10 flex items-center justify-center text-2xl font-black text-azure/40 uppercase group-hover:border-azure/40 transition-colors">
+                      {p.name[0]}
+                    </div>
+                  )}
+                </div>
+                
+                <h3 className="text-ice font-bold group-hover:text-azure transition-colors">{p.name}</h3>
+                <p className="text-azure/60 font-mono text-[10px] uppercase tracking-wider mb-4">@{p.nickname || 'vaga'}</p>
+  
+                <div className="w-full flex flex-wrap justify-center gap-2">
+                  {p.modalities.length > 0 ? (
+                    p.modalities.map((m: any) => (
+                      <div key={m.id} className="flex flex-col items-center">
+                        <span className="text-[10px] bg-midnight border border-azure/10 px-2 py-1 rounded text-ice/70 whitespace-nowrap">
+                          {m.name}
+                        </span>
+                        {m.isInClub ? (
+                          <div className="flex flex-col items-center mt-1">
+                            <span className="text-[7px] text-amber-500/40 uppercase font-black tracking-tighter">Clube</span>
+                            <span className="text-[9px] text-amber-500 font-bold max-w-[120px] truncate">
+                              {m.clubName || 'Desconhecido'}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-[8px] text-emerald-400 uppercase mt-1 font-bold">Free Agent</span>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <span className="text-[10px] bg-midnight border border-azure/10 px-2 py-1 rounded text-azure/40 whitespace-nowrap">
+                      Nenhuma Modalidade
                     </span>
-                    {m.isInClub ? (
-                      <span className="text-[8px] text-amber-500/60 uppercase mt-0.5 font-bold">Em Clube</span>
-                    ) : (
-                      <span className="text-[8px] text-emerald-400 uppercase mt-0.5 font-bold">Free Agent</span>
-                    )}
-                  </div>
+                  )}
+                </div>
+  
+                <div className="mt-6 pt-4 border-t border-azure/5 w-full">
+                  <span className="text-xs text-azure font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
+                    Ver Perfil Completo →
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2">
+              <Link
+                href={getPageUrl(page - 1)}
+                className={`px-4 py-2 rounded-lg border border-azure/10 text-sm transition-all ${
+                  page <= 1 ? 'pointer-events-none opacity-20' : 'hover:bg-azure/10 text-ice/60 hover:text-ice'
+                }`}
+              >
+                ← Anterior
+              </Link>
+              
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                  <Link
+                    key={p}
+                    href={getPageUrl(p)}
+                    className={`w-10 h-10 flex items-center justify-center rounded-lg border text-sm font-bold transition-all ${
+                      p === page
+                        ? 'bg-azure border-azure text-midnight'
+                        : 'border-azure/10 text-ice/40 hover:border-azure/30 hover:text-ice'
+                    }`}
+                  >
+                    {p}
+                  </Link>
                 ))}
               </div>
 
-              <div className="mt-6 pt-4 border-t border-azure/5 w-full">
-                <span className="text-xs text-azure font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
-                  Ver Perfil Completo →
-                </span>
-              </div>
-            </Link>
-          ))}
+              <Link
+                href={getPageUrl(page + 1)}
+                className={`px-4 py-2 rounded-lg border border-azure/10 text-sm transition-all ${
+                  page >= totalPages ? 'pointer-events-none opacity-20' : 'hover:bg-azure/10 text-ice/60 hover:text-ice'
+                }`}
+              >
+                Próximo →
+              </Link>
+            </div>
+          )}
         </div>
       )}
     </div>

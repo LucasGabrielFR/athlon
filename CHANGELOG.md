@@ -17,6 +17,18 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.
   - Restrição de Criação: Competições só podem ser criadas se o usuário for presidente da organização selecionada.
   - Cascata de Exclusão: Deletar uma organização agora remove recursivamente competições, inscrições e elencos.
 
+### Added
+- **Mercado de Jogadores:**
+  - Implementada paginação (12 jogadores por página) para melhorar a performance.
+  - Adicionada a exibição do nome do clube no card do jogador (quando houver).
+
+### Changed
+- **Mercado de Jogadores:** A busca agora acontece automaticamente ao alterar qualquer filtro, eliminando o botão "Filtrar".
+
+### Fixed
+- **Mercado de Jogadores:** Corrigido problema onde a lista de jogadores aparecia vazia devido a joins muito restritivos. Agora jogadores sem perfil completo ou modalidade vinculada também são exibidos.
+- **Filtros do Mercado:** Ajustada a lógica de filtragem para suportar corretamente a busca por modalidade, posição e status (Free Agent).
+
 ### Removed
 - **Sidebar:** Removida a opção "Minhas Competições", pois a visualização será feita diretamente na página da organização.
 
