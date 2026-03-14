@@ -1,4 +1,4 @@
-import { mysqlTable, serial, varchar, text, timestamp, json, boolean, int, bigint } from 'drizzle-orm/mysql-core';
+import { mysqlTable, serial, varchar, text, timestamp, json, boolean, int, bigint, foreignKey } from 'drizzle-orm/mysql-core';
 import { relations } from 'drizzle-orm';
 
 // ──────────────────────────────────────────
@@ -13,7 +13,7 @@ export const users = mysqlTable('users', {
   emailVerified: timestamp('email_verified'),
   passwordHash: varchar('password_hash', { length: 255 }),
   image: varchar('image', { length: 500 }),
-  role: varchar('role', { length: 50 }).notNull().default('player'), // player | club_president | league_president | admin
+  role: varchar('role', { length: 50 }).notNull().default('player'), // player | club_president | org_president | admin
   location: varchar('location', { length: 255 }),
   birthDate: timestamp('birth_date'),
   createdAt: timestamp('created_at').defaultNow(),
@@ -70,7 +70,8 @@ export const clubs = mysqlTable('clubs', {
   tag: varchar('tag', { length: 5 }).notNull(),
   logoUrl: varchar('logo_url', { length: 500 }),
   location: varchar('location', { length: 255 }),
-  presidentId: bigint('president_id', { mode: 'number', unsigned: true }).references(() => users.id),
+  presidentId: bigint('president_id', { mode: 'number', unsigned: true }).references(() => users.id, { onDelete: 'cascade' }),
+  modalityId: bigint('modality_id', { mode: 'number', unsigned: true }).references(() => modalities.id, { onDelete: 'cascade' }),
   createdAt: timestamp('created_at').defaultNow(),
 });
 
@@ -85,6 +86,21 @@ export const clubMembers = mysqlTable('club_members', {
   modalityId: bigint('modality_id', { mode: 'number', unsigned: true }).notNull().references(() => modalities.id),
   role: varchar('role', { length: 50 }).notNull().default('player'), // player | captain | coach
   joinedAt: timestamp('joined_at').defaultNow(),
+});
+
+// ──────────────────────────────────────────
+// ORGANIZATIONS (federações)
+// ──────────────────────────────────────────
+
+export const organizations = mysqlTable('organizations', {
+  id: serial('id').primaryKey(),
+  name: varchar('name', { length: 255 }).notNull(),
+  tag: varchar('tag', { length: 10 }).notNull(),
+  description: text('description'),
+  logoUrl: varchar('logo_url', { length: 500 }),
+  presidentId: bigint('president_id', { mode: 'number', unsigned: true }).references(() => users.id, { onDelete: 'cascade' }),
+  status: varchar('status', { length: 50 }).default('active'), // active | deactivated
+  createdAt: timestamp('created_at').defaultNow(),
 });
 
 // ──────────────────────────────────────────
@@ -110,18 +126,74 @@ export const clubInvitations = mysqlTable('club_invitations', {
 export const competitions = mysqlTable('competitions', {
   id: serial('id').primaryKey(),
   name: varchar('name', { length: 255 }).notNull(),
-  modalityId: bigint('modality_id', { mode: 'number', unsigned: true }).references(() => modalities.id),
-  organizerId: bigint('organizer_id', { mode: 'number', unsigned: true }).references(() => users.id),
+  modalityId: bigint('modality_id', { mode: 'number', unsigned: true }).references(() => modalities.id, { onDelete: 'cascade' }),
+  organizationId: bigint('organization_id', { mode: 'number', unsigned: true }).references(() => organizations.id, { onDelete: 'cascade' }),
+  organizerId: bigint('organizer_id', { mode: 'number', unsigned: true }).references(() => users.id, { onDelete: 'cascade' }),
   rulesJson: json('rules_json'),
   format: varchar('format', { length: 50 }).notNull().default('round_robin'),
   isPrivate: boolean('is_private').notNull().default(false),
   entryFee: int('entry_fee').default(0),
   prizePool: int('prize_pool').default(0),
-  status: varchar('status', { length: 50 }).default('planned'),
+  status: varchar('status', { length: 50 }).default('planned'), // planned | registration | active | finished
+  
+  // Registration & Roster Limits
+  maxTeams: int('max_teams'),
+  minPlayersPerTeam: int('min_players_per_team'),
+  maxPlayersPerTeam: int('max_players_per_team'),
+  registrationStartDate: timestamp('registration_start_date'),
+  registrationEndDate: timestamp('registration_end_date'),
+  registrationWindows: json('registration_windows'), // Periodos recorrentes de inscrição
+
   startDate: timestamp('start_date'),
   endDate: timestamp('end_date'),
   createdAt: timestamp('created_at').defaultNow(),
 });
+
+// ──────────────────────────────────────────
+// COMPETITION REGISTRATIONS (clubes inscritos)
+// ──────────────────────────────────────────
+
+export const competitionRegistrations = mysqlTable('competition_registrations', {
+  id: serial('id').primaryKey(),
+  competitionId: bigint('competition_id', { mode: 'number', unsigned: true }).notNull(),
+  clubId: bigint('club_id', { mode: 'number', unsigned: true }).notNull(),
+  status: varchar('status', { length: 20 }).notNull().default('pending'), // pending | approved | rejected
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+}, (table) => [
+  foreignKey({
+    name: 'comp_reg_comp_id_fk',
+    columns: [table.competitionId],
+    foreignColumns: [competitions.id],
+  }).onDelete('cascade'),
+  foreignKey({
+    name: 'comp_reg_club_id_fk',
+    columns: [table.clubId],
+    foreignColumns: [clubs.id],
+  }).onDelete('cascade'),
+]);
+
+// ──────────────────────────────────────────
+// COMPETITION ROSTERS (jogadores inscritos pelo clube)
+// ──────────────────────────────────────────
+
+export const competitionRosters = mysqlTable('competition_rosters', {
+  id: serial('id').primaryKey(),
+  registrationId: bigint('registration_id', { mode: 'number', unsigned: true }).notNull(),
+  userId: bigint('user_id', { mode: 'number', unsigned: true }).notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+}, (table) => [
+  foreignKey({
+    name: 'comp_rost_reg_id_fk',
+    columns: [table.registrationId],
+    foreignColumns: [competitionRegistrations.id],
+  }).onDelete('cascade'),
+  foreignKey({
+    name: 'comp_rost_user_id_fk',
+    columns: [table.userId],
+    foreignColumns: [users.id],
+  }).onDelete('cascade'),
+]);
 
 // ──────────────────────────────────────────
 // POSITIONS (por modalidade)
@@ -230,6 +302,53 @@ export const modalitiesRelations = relations(modalities, ({ many }) => ({
   invitations: many(clubInvitations),
   competitions: many(competitions),
   positions: many(positions),
+}));
+
+export const organizationsRelations = relations(organizations, ({ one, many }) => ({
+  president: one(users, {
+    fields: [organizations.presidentId],
+    references: [users.id],
+  }),
+  competitions: many(competitions),
+}));
+
+export const competitionsRelations = relations(competitions, ({ one, many }) => ({
+  modality: one(modalities, {
+    fields: [competitions.modalityId],
+    references: [modalities.id],
+  }),
+  organization: one(organizations, {
+    fields: [competitions.organizationId],
+    references: [organizations.id],
+  }),
+  organizer: one(users, {
+    fields: [competitions.organizerId],
+    references: [users.id],
+  }),
+  registrations: many(competitionRegistrations),
+}));
+
+export const competitionRegistrationsRelations = relations(competitionRegistrations, ({ one, many }) => ({
+  competition: one(competitions, {
+    fields: [competitionRegistrations.competitionId],
+    references: [competitions.id],
+  }),
+  club: one(clubs, {
+    fields: [competitionRegistrations.clubId],
+    references: [clubs.id],
+  }),
+  roster: many(competitionRosters),
+}));
+
+export const competitionRostersRelations = relations(competitionRosters, ({ one }) => ({
+  registration: one(competitionRegistrations, {
+    fields: [competitionRosters.registrationId],
+    references: [competitionRegistrations.id],
+  }),
+  user: one(users, {
+    fields: [competitionRosters.userId],
+    references: [users.id],
+  }),
 }));
 
 export const positionsRelations = relations(positions, ({ one }) => ({

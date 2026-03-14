@@ -1,74 +1,65 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+Todas as mudanças notáveis para o projeto **Athlon** serão documentadas neste arquivo.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
 ## [Unreleased]
 ### Added
-- **Mercado de Jogadores:** Nova listagem pública de talentos disponível em `/dashboard/players`.
-- **Filtros Avançados:** Busca de jogadores por modalidade, posição específica e status de disponibilidade (Free Agent).
-- **Perfis de Jogadores:** Páginas individuais exibindo especialidades, bio e clubes atuais de cada usuário.
-- **Convites via Perfil:** Presidentes de clube agora convidam jogadores diretamente de seus perfis, selecionando o clube e a modalidade desejada.
-- **Edição de Posições:** Jogadores agora podem alterar suas posições primária e secundária a qualquer momento diretamente no perfil.
-- **Planejamento Estratégico:** Atualizado "Action Plan" e "Roadmap" para incluir suporte a limite de jogadores e janelas de inscrição recorrentes em competições.
-
-### Changed
-- **Lógica de Recrutamento:** Removido o formulário de convite por ID numérico. O recrutamento agora é focado na descoberta de talentos através do Mercado.
-- **Estrutura de Membros:** O presidente do clube agora é integrado automaticamente ao elenco como jogador, sendo contabilizado nas estatísticas e exibido no plantel da modalidade principal.
-- **Interface de Elenco:** A exibição de jogadores nas telas do clube (pública e gestão) foi alterada para um formato de tabela, incluindo posição, nome, nickname e estatísticas de desempenho.
-- **Sidebar:** Adicionado link direto para o "Mercado de Jogadores".
-
-## [0.3.0] - 2026-03-13
-
-### Added
-- **Sistema de Clubes:** Fundação de clubes com gestão de tag, logo e localização.
-- **Roster & Elenco:** Jogadores agora possuem vínculo formal com clubes em modalidades específicas.
-- **Invitations & Requests:** Sistema de "Portas Fechadas" — jogadores só entram em clubes se forem convidados (Presidente → Jogador) ou se pedirem entrada (Jogador → Clube + aprovação do Presidente).
-- **Dashboard do Clube:** Interface exclusiva para o Presidente gerenciar convites, pedidos pendentes e dispensar jogadores.
-- **Vitrine do Clube:** Página pública exibindo o elenco organizado por departamentos (modalidades).
-- **Drizzle Relations:** Implementação de relacionamentos no schema para consultas relacionais performantes via API de Query.
-- **RBAC Fase 3:** Proteção de rotas e ações para garantir que apenas o presidente gerencie seu próprio clube.
-
-### Changed
-- Dashboard Home: Banner atualizado para "Fase 3 em progresso" com alertas automáticos sobre novos convites.
-- Sidebar: Link "Clubes" ativo e integrado à navegação.
-
-## [0.2.1] - 2026-03-12
-
-### Added
-- Campo `isActive` na tabela de modalidades para suporte a soft-delete (Desativação).
-- Modal de confirmação para desativar modalidades, evitando deleções acidentais.
-- Funcionalidade de edição de modalidades existentes via modal interativo.
-- Gestão de posições: agora é possível adicionar posições específicas no ato do cadastro ou gerenciar posições de modalidades existentes.
-- Filtro de visualização para modalidades "Ativas" e "Inativas".
-
-### Changed
-- Estrutura de rotas internas corrigida: `/dashboard/admin/modalities` e `/dashboard/profile` agora seguem a arquitetura de Route Groups do Next.js.
-- UI refinada: Seleção de tipo (Coletivo/Individual) e switches interativos foram remodelados com design premium e animações.
-- Lógica de posições: campos de posições são ocultados automaticamente para modalidades individuais.
+- **Gestão de Competições (Admin):**
+  - Implementada zona de perigo (`Danger Zone`) na página de detalhes da competição.
+  - Ação de exclusão permanente e recursiva (deleta inscrições e elencos via cascata no DB).
+  - Ação de desativação e reativação de competição (toggle status `deactivated` / `planned`) com confirmação.
+  - Travas de segurança via server actions para garantir que apenas administradores executem estas ações.
+- **Gestão de Organizações (Admin & Regras):**
+  - Implementada `Danger Zone` para organizações (Exclusão e Desativação).
+  - Trava de Organização Única: Usuários (incluindo Admin) só podem possuir uma única organização vinculada.
+  - Restrição de Criação: Competições só podem ser criadas se o usuário for presidente da organização selecionada.
+  - Cascata de Exclusão: Deletar uma organização agora remove recursivamente competições, inscrições e elencos.
 
 ### Removed
-- Exclusão permanente de modalidades (substituída pelo sistema de desativação/reativação).
+- **Sidebar:** Removida a opção "Minhas Competições", pois a visualização será feita diretamente na página da organização.
+
+## [0.4.0] - 2026-03-14
+
+### Added
+- **Organizacões (Refactor):** Transição completa do termo "Ligas" para "Organizações" em todo o sistema.
+- **Role Presidente de Organização:** Renomeação do cargo `league_president` para `org_president`.
+- **Restrição de Competições:** A criação de competições agora é exclusiva para Presidentes de Organização ou Admins.
+- **Wizard de Organização:** Interface para criação e gestão de organizações em `/dashboard/organizations`.
+
+### Changed
+- **Lógica de Criação:** Torneios agora devem ser obrigatoriamente vinculados a uma Organização válida de posse do usuário (ou gerida pelo Admin).
+- **Interface de Torneios:** Labels, botões e descrições atualizados de "Ligas" para "Organizações" nas páginas de detalhe, listagem e criação.
+- **Segurança (Server Actions):** Reforço de validação no servidor para garantir que o criador de uma competição é o presidente legítimo da organização selecionada.
+
+### Fixed
+- **Navegação Sidebar:** Links e ícones corrigidos para refletir as novas rotas de organizações.
+
+## [0.3.0] - 2026-03-14
+
+### Added
+- **Unificação de Interface:** A "Vitrine do Clube" e a "Gestão do Clube" foram fundidas em uma única página profissional dentro do Dashboard (`/dashboard/clubs/[id]`).
+- **Participação Restrita:** Travas lógicas para evitar múltiplos papéis conflitantes na mesma modalidade.
+- **Saída de Clube:** Funcionalidade para jogadores saírem voluntariamente de clubes.
+- **Mercado de Jogadores:** Listagem de talentos em `/dashboard/players`.
+- **Perfis de Jogadores:** Páginas individuais com biografia e histórico.
+- **Convites via Perfil:** Presidentes podem convidar jogadores diretamente de seus perfis.
+- **Ambiente de Teste:** Script de seed (`npm run db:seed`) atualizado.
+
+### Changed
+- **Navegação Consolidada:** Links externos para clubes agora redirecionam para o ambiente seguro do Dashboard.
+- **Visualização de Elenco:** A listagem de jogadores agora utiliza uma tabela profissional com estatísticas de vitórias/derrotas e identificação de cargos (Presidente/Capitão).
 
 ## [0.2.0] - 2026-03-12
 
 ### Added
-- Tabelas de banco de dados: `positions`, `stat_types`, `player_profiles`, `player_modalities`.
-- Server Actions para CRUD de modalidades (protegido por role `admin`).
-- Página `/dashboard/admin/modalities`: gestão completa de modalidades com formulário e listagem.
-- Página `/dashboard/profile`: edição de dados pessoais (nome, bio, avatar) e gestão de modalidades praticadas.
-- Context Switcher: jogador pode definir uma modalidade ativa, exibida no Header.
-- Sidebar atualizada com seção "Admin" visível apenas para usuários com role `admin`.
-- Identidade visual integrada: logos oficiais da pasta `identidade-visual` aplicados em toda a UI.
-- Registro de conta agora inclui seleção de papel: Jogador ou Presidente de Liga.
+- **Sistema de Posições:** Modalidades agora possuem posições específicas (ex: ADC, Mid, Tanker).
+- **Vínculo Jogador-Modalidade:** Jogadores agora escolhem sua posição primária e secundária ao entrar em uma modalidade.
+- **Gestão de Clubes (Fase 1):** Criação de clubes, upload de logos e definição de localização.
+- **Painel do Presidente:** Interface para gerenciar pedidos de entrada e convites enviados.
 
-## [0.1.0] - 2026-03-12
-
-### Added
-- Setup inicial do projeto com Next.js 15, Drizzle ORM e MySQL via Docker.
-- Sistema de autenticação (Auth.js v5) com login, registro e recuperação de senha.
-- Arquitetura de Roles (RBAC) integrada ao schema e sessão JWT.
-- Layout base responsivo com Header, Sidebar e Design System ("Vértice da Vitória").
-- Documentação detalhada: Plano de Ação, Arquitetura e Roadmap.
+## [0.1.0] - 2026-03-10
+- Inicialização do projeto Athlon.
+- Dashboard básico com autenticação Auth.js.
+- Cadastro de modalidades esportivas.

@@ -36,14 +36,16 @@ Este roadmap detalha as fases de desenvolvimento do projeto Athlon, permitindo u
 
 ---
 
-## 🏛️ Fase 4: Ligas & Motor de Competições
+## 🏛️ Fase 4: Gestão Administrativa & Travas ✅
 *Onde a mágica da competição acontece.*
 
-- [ ] **Configuração de Ligas:** Role "Presidente de Liga" e criação de entidades federativas.
-- [ ] **Wizard de Competição:** Interface passo-a-passo para criar torneios.
-- [ ] **Lógica de Formatos:** Implementação de Pontos Corridos e Mata-mata.
-- [ ] **Inscrições de Clubes:** Sistema para clubes solicitarem participação em competições.
-- [ ] **Gestão de Roster na Competição:**
+- [x] **Renomeação de Ligas:** Transição completa de "Ligas" para "Organizações".
+- [x] **Presidentes de Organização:** Novo papel com permissões exclusivas de criação.
+- [x] **Restrição de Criação:** Apenas Presidentes de Organização ou Admins podem abrir competições.
+- [x] **Wizard de Criação:** Fluxo unificado associando o torneio obrigatoriamente a uma Organização.
+- [x] **Gestão Administrativa (Admin):** Exclusão recursiva e desativação de competições e federações.
+- [x] **Regras & Travas:** Organização única por usuário e restrição de criação de torneios.
+- [ ] **Customização de Inscrições:**
     - [ ] Limite máximo de jogadores por equipe participante.
     - [ ] Configuração de janelas de inscrição recorrentes (Semanal, Quinzenal, Mensal).
 
@@ -54,7 +56,7 @@ Este roadmap detalha as fases de desenvolvimento do projeto Athlon, permitindo u
 
 - [ ] **Gerador de Chaveamento/Tabelas:** Algoritmo para criar a ordem dos jogos.
 - [ ] **Report de Resultados:** Interface para Presidentes de Clube enviarem placares e fotos.
-- [ ] **Validação de Súmula:** Fluxo de aprovação pelo Presidente da Liga.
+- [ ] **Validação de Súmula:** Fluxo de aprovação pelo Presidente da Organização.
 - [ ] **Eventos de Partida:** Registro atômico de Gols, Kills, Cartões, etc.
 
 ---
@@ -74,8 +76,8 @@ Este roadmap detalha as fases de desenvolvimento do projeto Athlon, permitindo u
 
 - [ ] **Integração de Pagamentos:** Checkout para taxas de inscrição.
 - [ ] **Prize Pool & Escrow:** Sistema de garantia de premiações.
-- [ ] **Notificações em Tempo Real:** Alertas de jogos e notícias da liga.
-- [ ] **API Pública/Widgets:** Expandir para que ligas incorporem dados em seus sites.
+- [ ] **Notificações em Tempo Real:** Alertas de jogos e notícias da organização.
+- [ ] **API Pública/Widgets:** Expandir para que organizações incorporem dados em seus sites.
 
 ---
 
@@ -85,7 +87,7 @@ Este roadmap detalha as fases de desenvolvimento do projeto Athlon, permitindo u
 | **Fase 1** | ✅ Concluída | 100% |
 | **Fase 2** | ✅ Concluída | 100% |
 | **Fase 3** | ✅ Concluída | 100% |
-| **Fase 4** | 🟢 Próxima | 0% |
+| **Fase 4** | ✅ Concluída | 100% |
 
 ---
 *Roadmap sujeito a ajustes conforme a evolução do projeto.*

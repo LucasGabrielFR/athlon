@@ -75,11 +75,11 @@ export default async function DashboardPage() {
       <div className="bg-slate rounded-xl border border-azure/20 p-6">
         <div className="flex items-center gap-3 mb-2">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span className="text-xs text-emerald-400 uppercase tracking-widest font-semibold">Fase 3 em progresso</span>
+          <span className="text-xs text-emerald-400 uppercase tracking-widest font-semibold">Fase 4 em progresso</span>
         </div>
-        <h3 className="text-ice font-bold text-lg">Organizações & Clubes</h3>
+        <h3 className="text-ice font-bold text-lg">Ligas & Motor de Competições</h3>
         <p className="text-ice/40 text-sm mt-1">
-          Fundação de clubes implementada ✅ &nbsp;|&nbsp; Sistema de convites ativo ✅ &nbsp;|&nbsp; Gestão de elenco liberada ✅
+          Role Presidente de Liga implementada ✅ &nbsp;|&nbsp; Estrutura de federações ativa 🏛️ &nbsp;|&nbsp; Motor de Competições em setup 🏆
         </p>
       </div>
     </div>

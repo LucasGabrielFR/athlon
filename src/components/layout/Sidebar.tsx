@@ -13,6 +13,10 @@ const adminItems = [
   { href: '/dashboard/admin/modalities', label: 'Modalidades', icon: '🎮' },
 ];
 
+const organizationPresidentItems = [
+  { href: '/dashboard/organizations', label: 'Organizações', icon: '🏛️' },
+];
+
 export async function Sidebar() {
   const session = await auth();
   const role = (session?.user as { role?: string })?.role;
@@ -51,6 +55,24 @@ export async function Sidebar() {
               <p className="text-[10px] text-azure/30 uppercase tracking-widest font-bold">Admin</p>
             </div>
             {adminItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="flex items-center gap-3 px-4 py-3 rounded-lg text-azure/50 hover:text-azure hover:bg-azure/10 transition-all group"
+              >
+                <span className="text-lg">{item.icon}</span>
+                <span className="text-sm font-medium">{item.label}</span>
+              </Link>
+            ))}
+          </>
+        )}
+
+        {(role === 'org_president' || isAdmin) && (
+          <>
+            <div className="pt-4 pb-1 px-4">
+              <p className="text-[10px] text-azure/30 uppercase tracking-widest font-bold">Presidente de Organização</p>
+            </div>
+            {organizationPresidentItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}

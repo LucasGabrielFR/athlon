@@ -132,17 +132,26 @@ export default async function PlayerProfilePage({
             ) : (
               <div className="space-y-3">
                 {player.memberships?.map((m) => (
-                  <div key={m.id} className="flex items-center gap-3 bg-midnight/40 p-3 rounded-lg border border-azure/5">
+                  <Link
+                    key={m.id}
+                    href={`/dashboard/clubs/${m.club.id}`}
+                    className="flex items-center gap-3 bg-midnight/40 p-3 rounded-lg border border-azure/5 hover:border-azure/20 transition-colors group/club"
+                  >
                     {m.club.logoUrl ? (
                       <img src={m.club.logoUrl} alt={m.club.name} className="w-8 h-8 rounded-full" />
                     ) : (
-                      <div className="w-8 h-8 rounded-full bg-azure/10 flex items-center justify-center text-[10px] font-bold text-azure">{m.club.tag}</div>
+                      <div className="w-8 h-8 rounded-full bg-azure/10 flex items-center justify-center text-[10px] font-bold text-azure">
+                        {m.club.tag}
+                      </div>
                     )}
-                    <div className="min-w-0">
-                      <p className="text-ice text-xs font-bold truncate">{m.club.name}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-ice text-xs font-bold truncate group-hover/club:text-azure transition-colors">
+                        {m.club.name}
+                      </p>
                       <p className="text-azure/60 text-[10px] uppercase font-bold">{m.modality.name}</p>
                     </div>
-                  </div>
+                    <span className="text-ice/20 group-hover/club:text-azure/40 transition-colors">›</span>
+                  </Link>
                 ))}
               </div>
             )}

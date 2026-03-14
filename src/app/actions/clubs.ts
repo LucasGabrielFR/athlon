@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/db';
-import { clubs, clubMembers, clubInvitations, users } from '@/db/schema';
+import { clubs, clubMembers, clubInvitations, users, modalities } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
@@ -46,6 +46,22 @@ export async function createClubAction(formData: FormData) {
     redirect('/dashboard/clubs/new?error=tag_too_long');
   }
 
+  // Check if user is already in a club for this modality
+  const alreadyInModality = await db.query.clubMembers.findFirst({
+    where: and(eq(clubMembers.userId, userId), eq(clubMembers.modalityId, modalityId)),
+  });
+  if (alreadyInModality) {
+    redirect('/dashboard/clubs/new?error=already_in_modality');
+  }
+
+  // Check if modality is team-based
+  const modality = await db.query.modalities.findFirst({
+    where: eq(modalities.id, modalityId),
+  });
+  if (!modality?.isTeamBased) {
+    redirect('/dashboard/clubs/new?error=invalid_modality');
+  }
+
   // Create the club
   const [newClub] = await db.insert(clubs).values({
     name,
@@ -53,6 +69,7 @@ export async function createClubAction(formData: FormData) {
     location: location || null,
     logoUrl,
     presidentId: userId,
+    modalityId,
   }).$returningId();
 
   if (!newClub?.id) redirect('/dashboard/clubs?error=creation_failed');
@@ -131,27 +148,27 @@ export async function invitePlayerAction(formData: FormData) {
 
 export async function requestJoinAction(formData: FormData) {
   const { userId } = await requireSession();
-
   const clubId = Number(formData.get('clubId'));
-  const modalityId = Number(formData.get('modalityId'));
   const message = (formData.get('message') as string)?.trim() || null;
 
-  if (!clubId || !modalityId) return;
+  if (!clubId) return;
 
-  // Check not already a member
-  const existingMember = await db.query.clubMembers.findFirst({
-    where: and(
-      eq(clubMembers.clubId, clubId),
-      eq(clubMembers.userId, userId),
-      eq(clubMembers.modalityId, modalityId),
-    ),
+  const club = await db.query.clubs.findFirst({ where: eq(clubs.id, clubId) });
+  if (!club || !club.modalityId) return;
+  const modalityId = club.modalityId;
+
+  // Check if already a member in THIS modality (any club)
+  const alreadyInModality = await db.query.clubMembers.findFirst({
+    where: and(eq(clubMembers.userId, userId), eq(clubMembers.modalityId, modalityId)),
   });
-  if (existingMember) {
-    revalidatePath(`/clubs/${clubId}`);
+  if (alreadyInModality) {
+    revalidatePath(`/dashboard/clubs/${clubId}`);
     return;
   }
 
-  // Check no pending request already exists
+  // Check no pending request already exists for this modality (any club or specific club?)
+  // User says "not registered in any club of the same modality"
+  // So we check if they have a pending request for THIS modality to THIS club
   const existingRequest = await db.query.clubInvitations.findFirst({
     where: and(
       eq(clubInvitations.clubId, clubId),
@@ -162,7 +179,7 @@ export async function requestJoinAction(formData: FormData) {
     ),
   });
   if (existingRequest) {
-    revalidatePath(`/clubs/${clubId}`);
+    revalidatePath(`/dashboard/clubs/${clubId}`);
     return;
   }
 
@@ -175,7 +192,7 @@ export async function requestJoinAction(formData: FormData) {
     message,
   });
 
-  revalidatePath(`/clubs/${clubId}`);
+  revalidatePath(`/dashboard/clubs/${clubId}`);
 }
 
 // ── Accept Invitation (player accepts invite from president) ─────────────────
@@ -295,4 +312,28 @@ export async function dismissPlayerAction(formData: FormData) {
   await db.delete(clubMembers).where(eq(clubMembers.id, memberId));
 
   revalidatePath(`/dashboard/clubs/${clubId}`);
+}
+
+// ── Leave Club ─────────────────────────────────────────────────────────────
+
+export async function leaveClubAction(formData: FormData) {
+  const { userId } = await requireSession();
+  const clubId = Number(formData.get('clubId'));
+  if (!clubId) return;
+
+  const member = await db.query.clubMembers.findFirst({
+    where: and(eq(clubMembers.clubId, clubId), eq(clubMembers.userId, userId)),
+  });
+
+  if (!member) return;
+
+  // Presidents cannot leave without disbanding or transferring (not implemented yet)
+  const club = await db.query.clubs.findFirst({ where: eq(clubs.id, clubId) });
+  if (club?.presidentId === userId) return;
+
+  await db.delete(clubMembers).where(eq(clubMembers.id, member.id));
+
+  revalidatePath(`/dashboard/clubs/${clubId}`);
+  revalidatePath('/dashboard/clubs');
+  redirect('/dashboard/clubs');
 }

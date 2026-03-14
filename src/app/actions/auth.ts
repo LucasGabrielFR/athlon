@@ -16,7 +16,7 @@ export async function registerAction(formData: FormData) {
   const password = formData.get('password') as string;
   const role = formData.get('role') as string;
 
-  const validRoles = ['player', 'league_president'];
+  const validRoles = ['player', 'org_president'];
 
   if (!name || !email || !password || !validRoles.includes(role)) {
     redirect('/register?error=missing_fields');
@@ -32,7 +32,7 @@ export async function registerAction(formData: FormData) {
     nickname: nickname || null,
     email,
     passwordHash: await hashPassword(password),
-    role: role as 'player' | 'league_president',
+    role: role as 'player' | 'org_president',
   });
 
   redirect('/login?registered=true');

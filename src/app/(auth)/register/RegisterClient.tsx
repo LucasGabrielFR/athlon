@@ -9,7 +9,7 @@ const errorMessages: Record<string, string> = {
   email_taken: 'Este e-mail já está cadastrado.',
 };
 
-type Role = 'player' | 'league_president';
+type Role = 'player' | 'org_president';
 
 const roleOptions: { value: Role; icon: string; title: string; description: string }[] = [
   {
@@ -19,10 +19,10 @@ const roleOptions: { value: Role; icon: string; title: string; description: stri
     description: 'Compete em torneios, integra clubes e constrói sua carreira competitiva.',
   },
   {
-    value: 'league_president',
-    icon: '🏆',
-    title: 'Presidente de Liga',
-    description: 'Organiza competições, gerencia ligas e impulsiona o ecossistema.',
+    value: 'org_president',
+    icon: '🏛️',
+    title: 'Presidente de Organização',
+    description: 'Funda federações, organiza competições e impulsiona o ecossistema.',
   },
 ];
 

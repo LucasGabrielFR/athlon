@@ -15,6 +15,20 @@
       "when": 1773345908046,
       "tag": "0001_solid_carmella_unuscione",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1773513584145,
+      "tag": "0002_salty_onslaught",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1773513646955,
+      "tag": "0003_lying_mad_thinker",
+      "breakpoints": true
     }
   ]
 }

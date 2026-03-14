@@ -1,7 +1,7 @@
 # 🏆 Athlon
 > **O elo entre o esporte real e o digital.**
 
-Athlon é uma plataforma modular de gestão e engajamento para ecossistemas competitivos. Unindo a tradição do esporte real com a inovação dos e-sports, o projeto oferece uma infraestrutura completa para jogadores, clubes e ligas.
+Athlon é uma plataforma modular de gestão e engajamento para ecossistemas competitivos. Unindo a tradição do esporte real com a inovação dos e-sports, o projeto oferece uma infraestrutura completa para jogadores, clubes e organizações.
 
 ---
 
@@ -19,9 +19,9 @@ Diferente de sistemas estáticos, o Athlon funciona como uma **rede social de pe
 ## 👥 Perfis de Usuário
 
 - **🔐 Admin:** Gestão de infraestrutura e regras globais.
-- **🏛️ Presidente de Liga:** Arquiteto de competições e moderador de ecossistemas.
-- **🛡️ Presidente de Clube:** Gestor de elenco, responsável por fundar o clube e gerenciar convites/pedidos de entrada.
-- **👟 Jogador:** O "átomo" do sistema, focado em performance, podendo ingressar em clubes via convites ou solicitações.
+- **🏛️ Presidente de Organização:** Arquiteto de competições, fundador de federações e moderador de ecossistemas. Possui permissão exclusiva para criação de torneios.
+- **🛡️ Presidente de Clube:** Gestor de elenco, responsável por fundar o clube e inscrever equipes em torneios.
+- **👟 Jogador:** O "átomo" do sistema, focado em performance, podendo ingressar em clubes e ser escalado para competições.
 
 ---
 
@@ -62,18 +62,22 @@ Siga os passos abaixo para rodar o ambiente de desenvolvimento:
    docker-compose up -d
    ```
 
-3. **Inicie o servidor de desenvolvimento:**
-   ```bash
-   npm install
-   npm run dev
-   ```
+### Como Rodar
+1.  **Instalação:** `npm install`
+2.  **Scripts de Desenvolvimento:**
+    - `npm run dev`: Inicia o servidor Next.js
+    - `npx drizzle-kit push`: Sincroniza o schema com o banco MySQL
+3.  **Dados de Teste:**
+    - `npx tsx --env-file=.env scripts/seed.ts`: Gera 10 clubes e 110 usuários para teste.
+    - Veja `list-data.md` para as credenciais.
 
 Acesse `http://localhost:3000` para ver o Athlon em ação.
 
 ---
 
 ## 📄 Documentação Relacionada
-- [Plano de Ação e Arquitetura Detalhada](action-plan.md)
+- [Roadmap de Desenvolvimento](roadmap.md)
+- [Registro de Mudanças (Changelog)](CHANGELOG.md)
 
 ---
 *Athlon - Transformando dados em glória.*

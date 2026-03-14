@@ -111,7 +111,7 @@ export default async function ClubsPage() {
           {myMemberships.map((m) => (
             <Link
               key={m.id}
-              href={m.role === 'president' ? `/dashboard/clubs/${m.club.id}` : `/clubs/${m.club.id}`}
+              href={`/dashboard/clubs/${m.club.id}`}
               className="bg-slate border border-azure/10 hover:border-azure/30 rounded-xl p-5 transition-colors group"
             >
               <div className="flex items-start justify-between mb-3">

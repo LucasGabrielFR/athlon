@@ -1,8 +1,11 @@
 import { db } from '@/db';
 import { modalities } from '@/db/schema';
-import { eq } from 'drizzle-orm';
 import { createClubAction } from '@/app/actions/clubs';
+import { auth } from '@/auth';
+import { clubMembers } from '@/db/schema';
+import { eq, and, notInArray } from 'drizzle-orm';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 
 export default async function NewClubPage({
   searchParams,
@@ -10,15 +13,33 @@ export default async function NewClubPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const params = await searchParams;
+  const session = await auth();
+  if (!session?.user) redirect('/login');
+  const userId = Number((session.user as { id?: string | number }).id);
 
+  // Get modalities the user is already in
+  const myMemberships = await db.query.clubMembers.findMany({
+    where: eq(clubMembers.userId, userId),
+    columns: { modalityId: true },
+  });
+  const myModalityIds = myMemberships.map(m => m.modalityId);
+
+  // Rules: 
+  // 1. Only team-based modalities
+  // 2. User cannot re-create a club in a modality they already play
   const activeModalities = await db.query.modalities.findMany({
-    where: eq(modalities.isActive, true),
+    where: and(
+      eq(modalities.isActive, true),
+      eq(modalities.isTeamBased, true),
+      myModalityIds.length > 0 ? notInArray(modalities.id, myModalityIds) : undefined
+    ),
   });
 
   const errorMessages: Record<string, string> = {
     missing_fields: 'Preencha todos os campos obrigatórios.',
     tag_too_long: 'A tag do clube deve ter no máximo 5 caracteres.',
     creation_failed: 'Erro ao criar o clube. Tente novamente.',
+    already_in_modality: 'Você já participa de um clube nesta modalidade.',
   };
   const error = params?.error ? errorMessages[params.error] : null;
 

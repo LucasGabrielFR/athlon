@@ -1,7 +1,7 @@
 import { auth } from '@/auth';
 import { db } from '@/db';
 import { clubs, clubMembers, clubInvitations, users, modalities, positions, playerModalities } from '@/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, notInArray } from 'drizzle-orm';
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -9,7 +9,10 @@ import {
   acceptJoinRequestAction,
   rejectInvitationAction,
   dismissPlayerAction,
+  requestJoinAction,
+  leaveClubAction,
 } from '@/app/actions/clubs';
+import { ConfirmButton } from '@/components/confirm-button';
 
 export default async function ClubManagePage({
   params,
@@ -28,8 +31,8 @@ export default async function ClubManagePage({
   });
   if (!club) notFound();
 
-  // Only the president can access this page
-  if (club.presidentId !== userId) redirect(`/clubs/${clubId}`);
+  // Check roles
+  const isPresident = club.presidentId === userId;
 
   // Club members grouped by modality with positions
   const members = await db
@@ -56,6 +59,35 @@ export default async function ClubManagePage({
     ))
     .leftJoin(positions, eq(playerModalities.primaryPositionId, positions.id))
     .where(eq(clubMembers.clubId, clubId));
+
+  const isMember = members.some(m => m.userId === userId);
+
+  // If visitor: check for pending request
+  const myPendingRequest = !isMember ? await db.query.clubInvitations.findFirst({
+    where: and(
+      eq(clubInvitations.clubId, clubId),
+      eq(clubInvitations.userId, userId),
+      eq(clubInvitations.type, 'request'),
+      eq(clubInvitations.status, 'pending'),
+    ),
+  }) : null;
+
+  // Rule: User cannot request entry if already in a club of the same modality elsewhere
+  // Handle legacy data where club.modalityId might be null
+  let effectiveModalityId = club.modalityId;
+  if (!effectiveModalityId) {
+    const firstMember = await db.query.clubMembers.findFirst({
+      where: eq(clubMembers.clubId, clubId),
+    });
+    effectiveModalityId = firstMember?.modalityId ?? null;
+  }
+
+  const alreadyInSameModality = !isMember && effectiveModalityId ? await db.query.clubMembers.findFirst({
+    where: and(
+      eq(clubMembers.userId, userId),
+      eq(clubMembers.modalityId, effectiveModalityId)
+    )
+  }) : null;
 
   // ... (rest of the data fetching remains similar)
   // Pending join requests
@@ -134,13 +166,57 @@ export default async function ClubManagePage({
             </div>
           </div>
         </div>
-        <Link
-          href={`/clubs/${clubId}`}
-          className="text-xs text-azure/60 hover:text-azure border border-azure/20 hover:border-azure/40 px-3 py-2 rounded-lg transition-colors"
-        >
-          Ver Vitrine Pública ↗
-        </Link>
+        <div className="flex gap-3">
+          {isMember && !isPresident && (
+            <form action={leaveClubAction}>
+              <input type="hidden" name="clubId" value={clubId} />
+              <ConfirmButton
+                type="submit"
+                confirmMessage="Tem certeza que deseja sair do clube?"
+                className="text-xs bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 px-4 py-2 rounded-lg font-bold transition-all"
+              >
+                🚪 Sair do Clube
+              </ConfirmButton>
+            </form>
+          )}
+          <Link
+            href={`/dashboard/clubs`}
+            className="text-xs text-azure/60 hover:text-azure border border-azure/20 hover:border-azure/40 px-3 py-2 rounded-lg transition-colors flex items-center"
+          >
+            Voltar
+          </Link>
+        </div>
       </div>
+
+      {/* Request to Join (Visitor mode) */}
+      {!isMember && !isPresident && !alreadyInSameModality && (
+        <div className="bg-slate rounded-xl border border-azure/10 p-6">
+          {myPendingRequest ? (
+            <div className="text-center py-2">
+              <p className="text-amber-400 font-bold">⏳ Pedido de entrada enviado</p>
+              <p className="text-ice/40 text-sm mt-1">
+                Aguardando aprovação do presidente do clube.
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div>
+                <h3 className="text-ice font-bold text-lg">Gostaria de entrar para o clube?</h3>
+                <p className="text-ice/40 text-sm">Envie uma solicitação para participar da nossa equipe.</p>
+              </div>
+              <form action={requestJoinAction} className="flex gap-2 flex-wrap">
+                <input type="hidden" name="clubId" value={clubId} />
+                <button
+                  type="submit"
+                  className="bg-azure text-midnight font-black text-xs uppercase px-8 py-3 rounded-lg hover:bg-azure/80 transition-transform active:scale-95 shadow-lg shadow-azure/10"
+                >
+                  ✋ Solicitar Entrada
+                </button>
+              </form>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Join Requests */}
       {joinRequests.length > 0 && (
@@ -197,22 +273,24 @@ export default async function ClubManagePage({
         </div>
       )}
 
-      {/* Invite CTA */}
-      <div className="bg-slate rounded-xl border border-azure/20 p-8 flex flex-col items-center text-center shadow-lg shadow-azure/5">
-        <div className="w-16 h-16 rounded-full bg-azure/10 flex items-center justify-center text-3xl mb-4">
-          🔎
+      {/* Invite CTA (President only) */}
+      {isPresident && (
+        <div className="bg-slate rounded-xl border border-azure/20 p-8 flex flex-col items-center text-center shadow-lg shadow-azure/5">
+          <div className="w-16 h-16 rounded-full bg-azure/10 flex items-center justify-center text-3xl mb-4">
+            🔎
+          </div>
+          <h3 className="text-ice font-bold text-xl mb-2">Procurando Reforços?</h3>
+          <p className="text-ice/40 text-sm max-w-md mb-6">
+            Visite nosso Mercado de Jogadores para encontrar talentos filtrados por modalidade e posição. Convide-os diretamente de seus perfis.
+          </p>
+          <Link
+            href="/dashboard/players"
+            className="bg-azure hover:bg-azure/80 text-midnight font-bold px-8 py-3 rounded-xl transition-all shadow-lg shadow-azure/10"
+          >
+            Explorar Mercado de Jogadores
+          </Link>
         </div>
-        <h3 className="text-ice font-bold text-xl mb-2">Procurando Reforços?</h3>
-        <p className="text-ice/40 text-sm max-w-md mb-6">
-          Visite nosso Mercado de Jogadores para encontrar talentos filtrados por modalidade e posição. Convide-os diretamente de seus perfis.
-        </p>
-        <Link
-          href="/dashboard/players"
-          className="bg-azure hover:bg-azure/80 text-midnight font-bold px-8 py-3 rounded-xl transition-all shadow-lg shadow-azure/10"
-        >
-          Explorar Mercado de Jogadores
-        </Link>
-      </div>
+      )}
 
       {/* Roster grouped by modality */}
       <div className="space-y-6">
@@ -236,7 +314,8 @@ export default async function ClubManagePage({
                   <tr className="bg-midnight/40">
                     <th className="px-6 py-3 text-[10px] font-bold text-ice/40 uppercase tracking-widest">Posição</th>
                     <th className="px-6 py-3 text-[10px] font-bold text-ice/40 uppercase tracking-widest">Jogador</th>
-                    <th className="px-6 py-3 text-[10px] font-bold text-ice/40 uppercase tracking-widest whitespace-nowrap">Status/Função</th>
+                    <th className="px-6 py-3 text-[10px] font-bold text-ice/40 uppercase tracking-widest whitespace-nowrap">Função</th>
+                    <th className="px-6 py-3 text-[10px] font-bold text-ice/40 uppercase tracking-widest text-center">Estatísticas</th>
                     <th className="px-6 py-3 text-[10px] font-bold text-ice/40 uppercase tracking-widest text-right">Ações</th>
                   </tr>
                 </thead>
@@ -257,8 +336,8 @@ export default async function ClubManagePage({
                           <div className="w-8 h-8 rounded-full bg-azure/10 flex items-center justify-center text-xs font-bold text-azure shrink-0">
                             {m.userName.charAt(0).toUpperCase()}
                           </div>
-                          <div>
-                            <p className="text-ice text-sm font-semibold group-hover:text-azure transition-colors">{m.userName}</p>
+                          <div className="min-w-0">
+                            <p className="text-ice text-sm font-semibold group-hover:text-azure transition-colors truncate max-w-[120px]">{m.userName}</p>
                             {m.userNickname && <p className="text-azure/40 text-[10px] font-mono leading-none mt-0.5">@{m.userNickname}</p>}
                           </div>
                         </div>
@@ -276,18 +355,30 @@ export default async function ClubManagePage({
                           {m.userId === club.presidentId ? '👑 Presidente' : m.role === 'captain' ? '⚡ Capitão' : 'Jogador'}
                         </span>
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span className="text-[10px] text-ice/60 font-mono">0 J</span>
+                          <div className="flex gap-1.5">
+                             <span className="text-[9px] text-emerald-400/80 font-bold">0V</span>
+                             <span className="text-[9px] text-rose-400/80 font-bold">0D</span>
+                          </div>
+                        </div>
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">
-                        {m.userId !== club.presidentId && (
+                        {isPresident && m.userId !== club.presidentId ? (
                           <form action={dismissPlayerAction}>
                             <input type="hidden" name="memberId" value={m.memberId} />
                             <input type="hidden" name="clubId" value={clubId} />
-                            <button
+                            <ConfirmButton
                               type="submit"
+                              confirmMessage={`Tem certeza que deseja dispensar ${m.userName}?`}
                               className="text-[10px] font-bold text-rose-400/50 hover:text-rose-400 border border-rose-500/0 hover:border-rose-500/30 px-3 py-1.5 rounded uppercase tracking-widest transition-all hover:bg-rose-500/5"
                             >
                               Dispensar
-                            </button>
+                            </ConfirmButton>
                           </form>
+                        ) : (
+                          <span className="text-[10px] text-ice/10 uppercase tracking-widest font-black">—</span>
                         )}
                       </td>
                     </tr>
