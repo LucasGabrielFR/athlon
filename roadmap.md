@@ -45,9 +45,13 @@ Este roadmap detalha as fases de desenvolvimento do projeto Athlon, permitindo u
 - [x] **Wizard de Criação:** Fluxo unificado associando o torneio obrigatoriamente a uma Organização.
 - [x] **Gestão Administrativa (Admin):** Exclusão recursiva e desativação de competições e federações.
 - [x] **Regras & Travas:** Organização única por usuário e restrição de criação de torneios.
-- [ ] **Customização de Inscrições:**
-    - [ ] Limite máximo de jogadores por equipe participante.
-    - [ ] Configuração de janelas de inscrição recorrentes (Semanal, Quinzenal, Mensal).
+- [x] **Customização de Inscrições:**
+    - [x] Limite máximo de jogadores por equipe participante.
+    - [x] Configuração de janelas de inscrição recorrentes.
+    - [x] Edição de Informações da Competição (com travas de estado).
+    - [x] Controles Manuais de Janelas e Inscrições.
+    - [x] Feed de Histórico e Postagens de Organizadores.
+
 
 ---
 

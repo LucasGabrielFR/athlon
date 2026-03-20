@@ -143,6 +143,10 @@ export const competitions = mysqlTable('competitions', {
   registrationStartDate: timestamp('registration_start_date'),
   registrationEndDate: timestamp('registration_end_date'),
   registrationWindows: json('registration_windows'), // Periodos recorrentes de inscrição
+  
+  isRegistrationManualOpen: boolean('is_registration_manual_open').notNull().default(false),
+  isWindowManualOpen: boolean('is_window_manual_open').notNull().default(false),
+
 
   startDate: timestamp('start_date'),
   endDate: timestamp('end_date'),
@@ -219,6 +223,32 @@ export const statTypes = mysqlTable('stat_types', {
   isHigherBetter: boolean('is_higher_better').notNull().default(true),
   createdAt: timestamp('created_at').defaultNow(),
 });
+
+// ──────────────────────────────────────────
+// COMPETITION POSTS & FEED
+// ──────────────────────────────────────────
+
+export const competitionPosts = mysqlTable('competition_posts', {
+  id: serial('id').primaryKey(),
+  competitionId: bigint('competition_id', { mode: 'number', unsigned: true }).notNull(),
+  authorId: bigint('author_id', { mode: 'number', unsigned: true }).notNull(),
+  type: varchar('type', { length: 20 }).notNull().default('post'), // 'post' | 'system'
+  content: text('content').notNull(),
+  isPinned: boolean('is_pinned').notNull().default(false),
+  createdAt: timestamp('created_at').defaultNow(),
+}, (table) => [
+  foreignKey({
+    name: 'comp_posts_comp_id_fk',
+    columns: [table.competitionId],
+    foreignColumns: [competitions.id],
+  }).onDelete('cascade'),
+  foreignKey({
+    name: 'comp_posts_author_id_fk',
+    columns: [table.authorId],
+    foreignColumns: [users.id],
+  }).onDelete('cascade'),
+]);
+
 
 // ──────────────────────────────────────────
 // PLAYER PROFILES
@@ -326,7 +356,9 @@ export const competitionsRelations = relations(competitions, ({ one, many }) => 
     references: [users.id],
   }),
   registrations: many(competitionRegistrations),
+  posts: many(competitionPosts),
 }));
+
 
 export const competitionRegistrationsRelations = relations(competitionRegistrations, ({ one, many }) => ({
   competition: one(competitions, {
@@ -339,6 +371,18 @@ export const competitionRegistrationsRelations = relations(competitionRegistrati
   }),
   roster: many(competitionRosters),
 }));
+
+export const competitionPostsRelations = relations(competitionPosts, ({ one }) => ({
+  competition: one(competitions, {
+    fields: [competitionPosts.competitionId],
+    references: [competitions.id],
+  }),
+  author: one(users, {
+    fields: [competitionPosts.authorId],
+    references: [users.id],
+  }),
+}));
+
 
 export const competitionRostersRelations = relations(competitionRosters, ({ one }) => ({
   registration: one(competitionRegistrations, {

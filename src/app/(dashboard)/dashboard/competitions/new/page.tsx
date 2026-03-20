@@ -175,6 +175,70 @@ export default async function NewCompetitionPage({ searchParams }: { searchParam
           </div>
         </section>
 
+        {/* Step 4: Registration Schedule */}
+        <section className="bg-slate border border-azure/10 rounded-3xl p-8 space-y-6">
+          <div className="flex items-center gap-3 mb-2">
+            <span className="h-8 w-8 bg-azure/10 text-azure rounded-lg flex items-center justify-center font-black text-sm">4</span>
+            <h3 className="text-lg font-bold text-ice">Cronograma de Inscrições</h3>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-[10px] text-azure/50 uppercase tracking-[0.2em] font-black px-1">Início das Inscrições</label>
+              <input 
+                name="registrationStartDate"
+                type="date"
+                className="w-full bg-slate-dark border border-azure/20 rounded-xl px-4 py-3 text-ice focus:border-azure focus:outline-none transition-all"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] text-azure/50 uppercase tracking-[0.2em] font-black px-1">Fim das Inscrições</label>
+              <input 
+                name="registrationEndDate"
+                type="date"
+                className="w-full bg-slate-dark border border-azure/20 rounded-xl px-4 py-3 text-ice focus:border-azure focus:outline-none transition-all"
+              />
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-azure/5">
+            <h4 className="text-[10px] text-azure/50 uppercase tracking-[0.2em] font-black mb-4 px-1">Janelas de Inscrição Recorrentes</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-ice/40 px-1">Recorrência</label>
+                <select 
+                  name="windowType"
+                  className="w-full bg-slate-dark border border-azure/20 rounded-xl px-4 py-3 text-ice focus:border-azure focus:outline-none transition-all appearance-none font-bold"
+                >
+                  <option value="none">Nenhuma</option>
+                  <option value="weekly">Semanal</option>
+                  <option value="biweekly">Quinzenal</option>
+                  <option value="monthly">Mensal</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-ice/40 px-1">Dia (Semana 0-6 / Mês 1-31)</label>
+                <input 
+                  name="windowDay"
+                  type="number"
+                  placeholder="Ex: 1"
+                  className="w-full bg-slate-dark border border-azure/20 rounded-xl px-4 py-3 text-ice focus:border-azure focus:outline-none transition-all"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-ice/40 px-1">Duração (dias)</label>
+                <input 
+                  name="windowDuration"
+                  type="number"
+                  placeholder="Ex: 2"
+                  className="w-full bg-slate-dark border border-azure/20 rounded-xl px-4 py-3 text-ice focus:border-azure focus:outline-none transition-all"
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+
+
         <button 
           type="submit"
           className="w-full bg-gradient-to-r from-azure to-blue-600 text-slate font-black py-5 rounded-2xl shadow-xl shadow-azure/20 hover:scale-[1.01] active:scale-[0.99] transition-all uppercase tracking-[0.2em]"
