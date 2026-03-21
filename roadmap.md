@@ -55,21 +55,23 @@ Este roadmap detalha as fases de desenvolvimento do projeto Athlon, permitindo u
 
 ---
 
-## 🎮 Fase 5: Execução de Partidas & Súmula
+## 🎮 Fase 5: Execução de Partidas & Súmula ✅
 *O dia do jogo e a coleta de dados.*
 
-- [ ] **Gerador de Chaveamento/Tabelas:** Algoritmo para criar a ordem dos jogos.
-- [ ] **Report de Resultados:** Interface para Presidentes de Clube enviarem placares e fotos.
-- [ ] **Validação de Súmula:** Fluxo de aprovação pelo Presidente da Organização.
-- [ ] **Eventos de Partida:** Registro atômico de Gols, Kills, Cartões, etc.
+- [x] **Gerador de Tabelas (Round Robin):** Algoritmo para criar a ordem dos jogos em pontos corridos.
+- [ ] **Gerador de Mata-mata (Bracket):** Lógica para chaves de eliminação simples e dupla.
+- [x] **Report de Resultados (Súmula):** Interface para registro de placares e eventos em tempo real.
+- [x] **Eventos de Partida:** Registro atômico de Gols, Kills, Cartões, etc.
+- [ ] **Validação & Disputa:** Fluxo de contestação e aprovação final dos resultados pela organização.
 
 ---
 
-## 📊 Fase 6: Estatísticas & Dashboards
+## 📊 Fase 6: Estatísticas & Dashboards 🚧
 *Transformando dados em valor e visibilidade.*
 
-- [ ] **Cálculo de Performance:** Processamento das estatísticas acumuladas.
-- [ ] **Dashboard do Jogador:** Gráficos de evolução e comparativos.
+- [ ] **Cálculo de Performance:** Processamento das estatísticas acumuladas (Artilharia, Assists).
+- [ ] **Líderes da Competição:** Aba de estatísticas individuais dentro de cada torneio.
+- [ ] **Dashboard do Jogador 2.0:** Gráficos de evolução, histórico de partidas e cards dinâmicos.
 - [ ] **Ranking de Clubes:** Classificação global e regional por modalidade.
 - [ ] **Hall de Troféus:** Galeria visual de conquistas coletivas e individuais.
 
@@ -78,7 +80,7 @@ Este roadmap detalha as fases de desenvolvimento do projeto Athlon, permitindo u
 ## 💎 Fase 7: Financeiro & Expansão
 *Refinamento e monetização.*
 
-- [ ] **Integração de Pagamentos:** Checkout para taxas de inscrição.
+- [ ] **Integração de Pagamentos:** Checkout para taxas de inscrição (Pix/Stripe).
 - [ ] **Prize Pool & Escrow:** Sistema de garantia de premiações.
 - [ ] **Notificações em Tempo Real:** Alertas de jogos e notícias da organização.
 - [ ] **API Pública/Widgets:** Expandir para que organizações incorporem dados em seus sites.
@@ -92,6 +94,11 @@ Este roadmap detalha as fases de desenvolvimento do projeto Athlon, permitindo u
 | **Fase 2** | ✅ Concluída | 100% |
 | **Fase 3** | ✅ Concluída | 100% |
 | **Fase 4** | ✅ Concluída | 100% |
+| **Fase 5** | 🔄 Finalizando | 85% |
+| **Fase 6** | 🏗️ Iniciado | 10% |
+
+---
+*Roadmap sujeito a ajustes conforme a evolução do projeto.*
 
 ---
 *Roadmap sujeito a ajustes conforme a evolução do projeto.*

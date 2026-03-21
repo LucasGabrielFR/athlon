@@ -8,12 +8,21 @@ import {
   reactivateModalityAction,
   createPositionAction,
   deletePositionAction,
+  createStatTypeAction,
+  deleteStatTypeAction,
 } from '@/app/actions/modalities';
 
 type Position = {
   id: number;
   name: string;
   abbreviation: string | null;
+};
+
+type StatType = {
+  id: number;
+  name: string;
+  unit: string | null;
+  isHigherBetter: boolean;
 };
 
 type Modality = {
@@ -24,6 +33,7 @@ type Modality = {
   isActive: boolean;
   createdAt: Date | null;
   positions: Position[];
+  statTypes: StatType[];
 };
 
 // ── Confirmation Modal ──────────────────────────────────────
@@ -321,6 +331,49 @@ function PositionsManager({ modality }: { modality: Modality }) {
   );
 }
 
+// ── Stats Manager ──────────────────────────────────────────
+function StatsManager({ modality }: { modality: Modality }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="mt-3 border-t border-azure/5 pt-3">
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center gap-2 text-xs text-azure/60 hover:text-azure transition-colors"
+      >
+        <span>{expanded ? '▾' : '▸'}</span>
+        <span>Eventos/Stats ({modality.statTypes.length})</span>
+      </button>
+
+      {expanded && (
+        <div className="mt-3 space-y-2">
+          {modality.statTypes.map((s) => (
+            <div key={s.id} className="flex items-center justify-between bg-navy/40 rounded px-3 py-1.5">
+              <span className="text-sm text-ice/80">
+                {s.name}
+                {s.unit && <span className="text-ice/30 ml-2 text-xs">({s.unit})</span>}
+              </span>
+              <form action={deleteStatTypeAction}>
+                <input type="hidden" name="statTypeId" value={s.id} />
+                <button type="submit" className="text-red-400/40 hover:text-red-400 text-xs transition-colors">✕</button>
+              </form>
+            </div>
+          ))}
+          {/* Add new stat type inline */}
+          <form action={createStatTypeAction} className="flex gap-2 mt-2">
+            <input type="hidden" name="modalityId" value={modality.id} />
+            <input type="text" name="name" placeholder="ex: Gol, Kill, Assistência" required className="flex-1 bg-navy border border-azure/20 rounded px-3 py-1.5 text-xs text-ice placeholder:text-ice/30 focus:outline-none focus:border-azure transition-colors" />
+            <input type="text" name="unit" placeholder="Unid." className="w-16 bg-navy border border-azure/20 rounded px-2 py-1.5 text-xs text-ice placeholder:text-ice/30 focus:outline-none focus:border-azure transition-colors" maxLength={10} />
+            <button type="submit" className="px-2 py-1.5 bg-azure/10 border border-azure/30 text-azure rounded text-xs hover:bg-azure hover:text-navy transition-colors font-bold">+</button>
+          </form>
+          <p className="text-[10px] text-ice/30 italic mt-1">Nomes como &quot;Gol&quot;, &quot;Gols&quot; ou &quot;Kill&quot; atualizam o placar automaticamente.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main Page Component ─────────────────────────────────────
 export default function ModalitiesClient({ modalities: initialModalities }: { modalities: Modality[] }) {
   const [confirmDeactivate, setConfirmDeactivate] = useState<Modality | null>(null);
@@ -425,7 +478,12 @@ export default function ModalitiesClient({ modalities: initialModalities }: { mo
                         </div>
                       </div>
 
-                      {m.isActive && <PositionsManager modality={m} />}
+                      {m.isActive && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <PositionsManager modality={m} />
+                          <StatsManager modality={m} />
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

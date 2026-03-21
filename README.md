@@ -10,9 +10,10 @@ Athlon é uma plataforma modular de gestão e engajamento para ecossistemas comp
 Diferente de sistemas estáticos, o Athlon funciona como uma **rede social de performance**. Um único usuário pode transitar entre ser um atleta, um gestor de clube ou um organizador de competições, tudo dentro de uma infraestrutura agnóstica de modalidade.
 
 ### 💡 Pilares
-- **Multimodalidade:** Suporte nativo para qualquer esporte ou game (Futebol, LoL, Vôlei, etc).
+- **Multimodalidade:** Suporte nativo para qualquer esporte ou game (Futebol, LoL, Vôlei, etc) com tipos de eventos e estatísticas totalmente customizáveis por modalidade.
 - **Escalabilidade:** Estrutura geográfica organizada por camadas (Global > Nacional > Estadual).
 - **Integridade:** Sistema de validação de resultados via comprovação visual.
+- **Dinamismo Competitivo:** Geração automática de tabelas temporárias (Round Robin) e Chaveamento Eliminatório (Mata-Mata) de forma dinâmica, com suporte a **Configurações Avançadas de Pontuação** e **Hierarquia de Desempate Visiva (Drag-and-Drop)**.
 
 ---
 

@@ -1,15 +1,18 @@
 import { auth } from '@/auth';
 import { db } from '@/db';
-import { competitions, competitionRegistrations, clubs, users } from '@/db/schema';
+import { competitions, competitionRegistrations, clubs, users, competitionPosts, matches } from '@/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { notFound } from 'next/navigation';
-import { registerClubAction, approveRegistrationAction, deleteCompetitionAction, deactivateCompetitionAction } from '@/app/actions/competitions';
+import { registerClubAction, approveRegistrationAction, deleteCompetitionAction, deactivateCompetitionAction, generateMatchesAction } from '@/app/actions/competitions';
 import Link from 'next/link';
 import { ConfirmButton } from '@/components/confirm-button';
 import { CompetitionFeed } from '@/components/competition-feed';
 import { EditCompetitionDialog } from '@/components/edit-competition-dialog';
 import { ManualStatusToggles } from '@/components/manual-status-toggles';
-import { LayoutDashboard, MessageSquare, Settings, ShieldAlert, Users } from 'lucide-react';
+import { StartTournamentButton } from '@/components/start-tournament-button';
+import { StandingsTable, type TeamStanding } from '@/components/standings-table';
+import { KnockoutBracket } from '@/components/knockout-bracket';
+import { LayoutDashboard, MessageSquare, Settings, ShieldAlert, Users, ChevronRight, Trophy, Calendar, ListOrdered } from 'lucide-react';
 
 export default async function CompetitionDetailPage({ 
   params,
@@ -32,7 +35,14 @@ export default async function CompetitionDetailPage({
       organizer: true,
       posts: {
         with: { author: true },
-        orderBy: [desc(competitions.createdAt)] // Actually we want desc posts, but drizzle query object syntax varies.
+        orderBy: [desc(competitionPosts.createdAt)]
+      },
+      matches: {
+        with: {
+          homeRegistration: { with: { club: true } },
+          awayRegistration: { with: { club: true } }
+        },
+        orderBy: [desc(matches.round)]
       }
     }
   });
@@ -66,6 +76,75 @@ export default async function CompetitionDetailPage({
   });
 
   const isRegistrationOpen = comp.isRegistrationManualOpen || comp.status === 'registration';
+
+  // Calculate Standings (only if not pure knockout)
+  const standingsMap = new Map<number, TeamStanding>();
+  let allStandings: any[] = [];
+  let groups: string[] = [];
+
+  if (comp.format !== 'knockout') {
+    // Initialize teams
+    allRegistrations.forEach(reg => {
+      standingsMap.set(reg.clubId, {
+        clubId: reg.clubId,
+        name: reg.club.name,
+        tag: reg.club.tag,
+        points: 0,
+        played: 0,
+        wins: 0,
+        draws: 0,
+        losses: 0,
+        goalsFor: 0,
+        goalsAgainst: 0,
+        goalDifference: 0,
+      });
+    });
+
+    const groupsConfig = (comp.groupsConfig as any) || {};
+    const ptsPerWin = groupsConfig.pointsPerWin ?? 3;
+    const ptsPerDraw = groupsConfig.pointsPerDraw ?? 1;
+    const ptsPerLoss = groupsConfig.pointsPerLoss ?? 0;
+    const tieBreakers = groupsConfig.tieBreakerOrder || ['pts', 'wins', 'goalDiff', 'goalsFor'];
+
+    comp.matches.forEach(match => {
+      if (match.status !== 'finished' || match.stage === 'knockout') return;
+      const home = match.homeRegistration ? standingsMap.get(match.homeRegistration.clubId) : undefined;
+      const away = match.awayRegistration ? standingsMap.get(match.awayRegistration.clubId) : undefined;
+      if (home && away) {
+        home.played++; away.played++;
+        const hs = match.homeScore ?? 0;
+        const as = match.awayScore ?? 0;
+        home.goalsFor += hs; home.goalsAgainst += as;
+        away.goalsFor += as; away.goalsAgainst += hs;
+        if (hs > as) {
+          home.points += ptsPerWin; home.wins++; away.points += ptsPerLoss; away.losses++;
+        } else if (as > hs) {
+          away.points += ptsPerWin; away.wins++; home.points += ptsPerLoss; home.losses++;
+        } else {
+          home.points += ptsPerDraw; away.points += ptsPerDraw; home.draws++; away.draws++;
+        }
+      }
+    });
+
+    allStandings = Array.from(standingsMap.values()).map(s => {
+      const reg = allRegistrations.find(r => r.clubId === s.clubId);
+      return {
+        ...s,
+        groupId: reg?.groupId || 'A',
+        goalDifference: s.goalsFor - s.goalsAgainst
+      };
+    }).sort((a, b) => {
+      for (const t of tieBreakers) {
+        if (t === 'pts' && b.points !== a.points) return b.points - a.points;
+        if (t === 'wins' && b.wins !== a.wins) return b.wins - a.wins;
+        if (t === 'goalDiff' && b.goalDifference !== a.goalDifference) return b.goalDifference - a.goalDifference;
+        if (t === 'goalsFor' && b.goalsFor !== a.goalsFor) return b.goalsFor - a.goalsFor;
+      }
+      return 0;
+    });
+
+    groups = Array.from(new Set(allStandings.map(s => s.groupId))).sort() as string[];
+  }
 
   return (
     <div className="space-y-8 pb-20">
@@ -119,6 +198,39 @@ export default async function CompetitionDetailPage({
             <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full border-2 border-slate animate-pulse" />
           )}
         </Link>
+        {comp.status === 'active' && (
+          <Link 
+            href={`?tab=matches`}
+            className={`flex items-center gap-2 px-6 py-3 rounded-[1rem] transition-all font-black text-[10px] uppercase tracking-widest ${
+              tab === 'matches' ? 'bg-azure text-slate shadow-lg shadow-azure/20' : 'text-ice/40 hover:text-ice hover:bg-slate-dark'
+            }`}
+          >
+            <Users size={14} />
+            Partidas
+          </Link>
+        )}
+        {comp.status === 'active' && comp.format !== 'knockout' && (
+          <Link 
+            href={`?tab=classification`}
+            className={`flex items-center gap-2 px-6 py-3 rounded-[1rem] transition-all font-black text-[10px] uppercase tracking-widest ${
+              tab === 'classification' ? 'bg-azure text-slate shadow-lg shadow-azure/20' : 'text-ice/40 hover:text-ice hover:bg-slate-dark'
+            }`}
+          >
+            <ListOrdered size={14} />
+            Classificação
+          </Link>
+        )}
+        {comp.status === 'active' && (comp.format === 'knockout' || comp.format === 'groups_knockout') && (
+          <Link 
+            href={`?tab=bracket`}
+            className={`flex items-center gap-2 px-6 py-3 rounded-[1rem] transition-all font-black text-[10px] uppercase tracking-widest ${
+              tab === 'bracket' ? 'bg-azure text-slate shadow-lg shadow-azure/20' : 'text-ice/40 hover:text-ice hover:bg-slate-dark'
+            }`}
+          >
+            <Trophy size={14} />
+            Mata-Mata
+          </Link>
+        )}
         {isOrganizer && (
           <Link 
             href={`?tab=settings`}
@@ -145,12 +257,35 @@ export default async function CompetitionDetailPage({
                   { label: 'Teams', value: `${allRegistrations.filter(r => r.status === 'approved').length} / ${comp.maxTeams || '∞'}`, color: 'text-ice' },
                   { label: 'Elenco', value: `${comp.minPlayersPerTeam}-${comp.maxPlayersPerTeam || '∞'}`, color: 'text-ice' }
                 ].map((stat, i) => (
-                  <div key={i} className="bg-slate border border-azure/5 p-6 rounded-[2rem] group hover:border-azure/20 transition-all shadow-xl shadow-slate-dark/20 flex flex-col items-center justify-center">
-                    <p className="text-[10px] text-ice/20 uppercase font-black mb-1 border-b border-ice/10 w-full text-center pb-2 italic tracking-[0.2em]">{stat.label}</p>
+                  <div key={i} className="bg-slate border border-azure/5 p-6 rounded-[2rem] group hover:border-azure/20 transition-all shadow-xl shadow-slate-dark/20 flex flex-col items-center justify-center text-center">
+                    <p className="text-[10px] text-ice/20 uppercase font-black mb-1 border-b border-ice/10 w-full pb-2 italic tracking-[0.2em]">{stat.label}</p>
                     <p className={`text-2xl font-black mt-2 ${stat.color} italic`}>{stat.value}</p>
                   </div>
                 ))}
               </div>
+
+              {/* Equipes Confirmadas */}
+              {allRegistrations.filter(r => r.status === 'approved').length > 0 && (
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between px-2">
+                    <h3 className="text-[10px] font-black text-azure uppercase tracking-[0.4em] italic leading-none">Equipes Participantes</h3>
+                    <span className="text-[10px] font-black text-ice/20 uppercase tracking-widest">{allRegistrations.filter(r => r.status === 'approved').length} Equipes</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {allRegistrations.filter(r => r.status === 'approved').map(reg => (
+                      <div key={reg.id} className="bg-slate-dark/40 border border-azure/10 px-6 py-4 rounded-3xl flex items-center gap-4 group hover:border-azure/30 transition-all shadow-lg">
+                        <div className="h-10 w-10 bg-azure/10 rounded-xl flex items-center justify-center font-black text-azure text-xs italic border border-azure/20 group-hover:bg-azure group-hover:text-slate transition-all duration-500">
+                          {reg.club.tag}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-black text-ice truncate italic tracking-tight">{reg.club.name}</p>
+                          <p className="text-[9px] text-ice/30 uppercase font-bold tracking-widest">Confirmado</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Registration Section for Club Presidents */}
               {eligibleClubs.length > 0 && isRegistrationOpen && (
@@ -230,6 +365,111 @@ export default async function CompetitionDetailPage({
             </div>
           )}
 
+          {tab === 'matches' && (
+            <div className="space-y-8">
+              <h3 className="text-[10px] font-black text-azure uppercase tracking-[0.4em] px-2 italic">Cronograma de Partidas</h3>
+              
+              <div className="space-y-10">
+                {Array.from(new Set(comp.matches.map(m => m.round))).sort((a, b) => (Number(a) - Number(b))).map(round => (
+                  <div key={Number(round)} className="space-y-4">
+                    <h4 className="text-xs font-black text-ice/40 uppercase tracking-[0.2em] px-2 italic border-l-2 border-azure/40">Rodada {Number(round)}</h4>
+                    <div className="grid gap-4">
+                      {comp.matches.filter(m => m.round === round).map(match => {
+                        const canManage = isOrganizer || 
+                                          match.homeRegistration?.club.presidentId === userId || 
+                                          match.awayRegistration?.club.presidentId === userId;
+                        
+                        return (
+                          <div key={match.id} className="relative group bg-slate border border-azure/5 rounded-[2rem] p-6 flex flex-col sm:flex-row items-center justify-between gap-6 hover:border-azure/20 transition-all shadow-xl overflow-hidden">
+                            {canManage && (
+                              <div className="absolute top-3 right-5 flex gap-2">
+                                <Link 
+                                  href={`/dashboard/competitions/${compId}/matches/${match.id}`} 
+                                  className="text-[8px] font-black text-azure hover:text-ice uppercase tracking-widest flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0"
+                                >
+                                  Súmula <ChevronRight className="w-2 h-2" />
+                                </Link>
+                              </div>
+                            )}
+
+                            {/* Home Team */}
+                            <div className="flex items-center gap-4 flex-1 justify-end min-w-0">
+                              <span className="text-sm font-black text-ice truncate italic tracking-tighter">{match.homeRegistration?.club.name || 'TBD'}</span>
+                              <div className="h-10 w-10 bg-slate-dark rounded-xl flex items-center justify-center font-black text-ice/30 text-[10px] border border-ice/5 uppercase">{match.homeRegistration?.club.tag || '?'}</div>
+                            </div>
+
+                            {/* Score / VS */}
+                            <div className="flex flex-col items-center px-8 border-x border-azure/10">
+                              <div className="flex items-center gap-3 font-black text-2xl italic tracking-tighter">
+                                <span className={match.status === 'finished' || match.status === 'live' ? 'text-ice' : 'text-ice/20'}>{match.homeScore ?? 0}</span>
+                                <span className="text-[10px] text-azure tracking-[0.3em] uppercase not-italic">VS</span>
+                                <span className={match.status === 'finished' || match.status === 'live' ? 'text-ice' : 'text-ice/20'}>{match.awayScore ?? 0}</span>
+                              </div>
+                              <span className={`text-[8px] font-black uppercase tracking-widest mt-1 ${
+                                match.status === 'live' ? 'text-red-500 animate-pulse' : 'text-ice/20'
+                              }`}>
+                                {match.status === 'scheduled' ? 'Agendado' : match.status === 'live' ? '• Ao Vivo' : 'Finalizado'}
+                              </span>
+                            </div>
+
+                            {/* Away Team */}
+                            <div className="flex items-center gap-4 flex-1 justify-start min-w-0">
+                              <div className="h-10 w-10 bg-slate-dark rounded-xl flex items-center justify-center font-black text-ice/30 text-[10px] border border-ice/5 uppercase">{match.awayRegistration?.club.tag || '?'}</div>
+                              <span className="text-sm font-black text-ice truncate italic tracking-tighter">{match.awayRegistration?.club.name || 'TBD'}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+
+                {comp.matches.length === 0 && (
+                  <div className="text-center py-20 opacity-20 italic text-sm">Nenhuma partida gerada ainda.</div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {tab === 'bracket' && !!comp.knockoutConfig && (
+            <div className="space-y-8">
+              <div className="mb-4">
+                <h3 className="text-2xl font-black text-ice italic tracking-tight">Chaveamento</h3>
+                <p className="text-[10px] text-azure font-black uppercase tracking-widest mt-1">Mata-Mata Oficial</p>
+              </div>
+              <div className="w-full min-h-[600px] h-auto bg-slate/30 border-2 border-azure/10 rounded-[2.5rem] overflow-hidden shadow-2xl relative">
+                  <div className="absolute inset-0 bg-gradient-to-br from-azure/5 via-transparent to-transparent pointer-events-none z-10" />
+                  <div className="p-4 md:p-10 h-full">
+                    <KnockoutBracket matches={comp.matches as any} config={comp.knockoutConfig as any} />
+                  </div>
+              </div>
+            </div>
+          )}
+
+          {tab === 'classification' && comp.format !== 'knockout' && (
+            <div className="space-y-12">
+              <div>
+                <h3 className="text-2xl font-black text-ice italic tracking-tight">Tabela de Classificação</h3>
+                <p className="text-[10px] text-azure font-black uppercase tracking-widest mt-1">Pontos corridos e estatísticas em tempo real</p>
+              </div>
+              
+              {groups.map((gId, i) => {
+                const groupStandings = allStandings.filter(s => s.groupId === gId);
+                return (
+                  <div key={gId} className="space-y-4">
+                    {comp.format === 'groups_knockout' && (
+                      <div className="flex items-center gap-3 px-2">
+                        <div className="h-6 w-1 bg-azure rounded-full shadow-[0_0_10px_rgba(0,163,255,0.5)]" />
+                        <h4 className="text-sm font-black text-ice italic uppercase tracking-[0.2em]">Grupo {gId}</h4>
+                      </div>
+                    )}
+                    <StandingsTable standings={groupStandings} />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
           {tab === 'settings' && isOrganizer && (
             <div className="space-y-10">
               <div className="bg-slate border border-azure/10 rounded-[2.5rem] p-10 shadow-2xl space-y-8">
@@ -243,12 +483,10 @@ export default async function CompetitionDetailPage({
                     <p className="text-[10px] font-black text-azure uppercase tracking-widest italic px-1">Ações do Torneio</p>
                     <div className="flex flex-wrap gap-4">
                       <EditCompetitionDialog competition={comp} />
-                      <button 
-                        disabled={comp.status !== 'registration'}
-                        className="bg-azure hover:bg-azure-dark text-slate px-6 py-2 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest shadow-lg shadow-azure/10 disabled:opacity-20 italic"
-                      >
-                        Gerar Tabela & Iniciar Torneio
-                      </button>
+                      <StartTournamentButton 
+                        competitionId={compId}
+                        disabled={comp.status !== 'registration' || allRegistrations.filter(r => r.status === 'approved').length < 2}
+                      />
                     </div>
                   </div>
 

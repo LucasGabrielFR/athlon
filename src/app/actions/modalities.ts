@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/db';
-import { modalities, positions } from '@/db/schema';
+import { modalities, positions, statTypes } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
@@ -112,6 +112,38 @@ export async function deletePositionAction(formData: FormData) {
   if (!id) return;
 
   await db.delete(positions).where(eq(positions.id, id));
+
+  revalidatePath('/dashboard/admin/modalities');
+}
+
+// ── Stat Types ─────────────────────────────
+
+export async function createStatTypeAction(formData: FormData) {
+  await requireAdmin();
+
+  const modalityId = Number(formData.get('modalityId'));
+  const name = formData.get('name') as string;
+  const unit = formData.get('unit') as string;
+  const isHigherBetter = formData.get('isHigherBetter') !== 'false';
+
+  if (!modalityId || !name) return;
+
+  await db.insert(statTypes).values({
+    modalityId,
+    name,
+    unit: unit || null,
+    isHigherBetter,
+  });
+
+  revalidatePath('/dashboard/admin/modalities');
+}
+
+export async function deleteStatTypeAction(formData: FormData) {
+  await requireAdmin();
+  const id = Number(formData.get('statTypeId'));
+  if (!id) return;
+
+  await db.delete(statTypes).where(eq(statTypes.id, id));
 
   revalidatePath('/dashboard/admin/modalities');
 }

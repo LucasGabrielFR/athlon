@@ -19,6 +19,7 @@ export default async function PlayersPage({
   const modalityFilter = params.modality ? Number(params.modality) : undefined;
   const positionFilter = params.position ? Number(params.position) : undefined;
   const statusFilter = params.status as string | undefined;
+  const searchFilter = params.q as string | undefined;
   const page = params.page ? Math.max(1, Number(params.page)) : 1;
   const pageSize = 12;
   const offset = (page - 1) * pageSize;
@@ -49,6 +50,9 @@ export default async function PlayersPage({
   }
   if (statusFilter === 'free') {
     conditions.push(isNull(clubMembers.id));
+  }
+  if (searchFilter) {
+    conditions.push(sql`(${users.name} LIKE ${`%${searchFilter}%`} OR ${users.nickname} LIKE ${`%${searchFilter}%`})`);
   }
 
   // 1. Get total count of distinct players matching filters
@@ -142,6 +146,7 @@ export default async function PlayersPage({
     if (modalityFilter) sp.set('modality', modalityFilter.toString());
     if (positionFilter) sp.set('position', positionFilter.toString());
     if (statusFilter) sp.set('status', statusFilter);
+    if (searchFilter) sp.set('q', searchFilter);
     sp.set('page', p.toString());
     return `?${sp.toString()}`;
   };
@@ -163,6 +168,7 @@ export default async function PlayersPage({
           modality: modalityFilter,
           position: positionFilter,
           status: statusFilter,
+          search: searchFilter,
         }}
       />
 

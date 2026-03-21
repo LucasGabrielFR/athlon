@@ -1,5 +1,5 @@
 import { db } from '../src/db';
-import { users, clubs, clubMembers, modalities, positions, playerModalities } from '../src/db/schema';
+import { users, clubs, clubMembers, modalities, positions, playerModalities, organizations, competitions, competitionRegistrations, competitionRosters, statTypes } from '../src/db/schema';
 import { eq, and } from 'drizzle-orm';
 import * as crypto from 'crypto';
 
@@ -74,12 +74,13 @@ async function seed() {
     
     if (existingClub) {
       clubId = existingClub.id;
-      await db.update(clubs).set({ presidentId: presId }).where(eq(clubs.id, clubId));
+      await db.update(clubs).set({ presidentId: presId, modalityId: mod.id }).where(eq(clubs.id, clubId));
     } else {
       const [res]: any = await db.insert(clubs).values({
         name: clubInfo.name,
         tag: clubInfo.tag,
         presidentId: presId,
+        modalityId: mod.id,
         location: 'São Paulo, BR',
       });
       clubId = res.insertId;
@@ -137,6 +138,121 @@ async function seed() {
         userId: playerId,
         modalityId: mod.id,
         role: 'player', 
+      });
+    }
+  }
+
+  // 4. Create a Test Organization
+  console.log('🏛️ Creating Test Organization...');
+  const orgName = 'Federação de Teste Athlon';
+  let orgId: number;
+  const existingOrg = await db.query.organizations.findFirst({ where: eq(organizations.name, orgName) });
+  
+  if (existingOrg) {
+    orgId = existingOrg.id;
+  } else {
+    // Arbitrarily pick the first president as org president too
+    const firstPres = await db.query.users.findFirst({ where: eq(users.role, 'club_president') });
+    const [res]: any = await db.insert(organizations).values({
+      name: orgName,
+      tag: 'FTA',
+      presidentId: firstPres?.id || 1,
+      status: 'active',
+    });
+    orgId = res.insertId;
+  }
+
+  // 5. Create a Test Competition (Football)
+  console.log('🎮 Creating Test Competition...');
+  const footballMod = allMods.find(m => m.name.toLowerCase().includes('futebol')) || allMods[0];
+  const compName = 'Copa Athlon de Verão 2026';
+  let compId: number;
+  const existingComp = await db.query.competitions.findFirst({ where: eq(competitions.name, compName) });
+
+  if (existingComp) {
+    compId = existingComp.id;
+  } else {
+    const [res]: any = await db.insert(competitions).values({
+      name: compName,
+      modalityId: footballMod.id,
+      organizationId: orgId,
+      status: 'registration',
+      maxTeams: 12,
+      minPlayersPerTeam: 5,
+      maxPlayersPerTeam: 15,
+      startDate: new Date('2026-06-01'),
+    });
+    compId = res.insertId;
+  }
+
+  // 6. Register Clubs in Competition and Populate Rosters
+  console.log('📝 Registering clubs and populating rosters...');
+  const allClubs = await db.query.clubs.findMany({ 
+    where: eq(clubs.modalityId, footballMod.id),
+    limit: 10 
+  });
+
+  for (const club of allClubs) {
+    let regId: number;
+    const existingReg = await db.query.competitionRegistrations.findFirst({
+      where: and(
+        eq(competitionRegistrations.competitionId, compId),
+        eq(competitionRegistrations.clubId, club.id)
+      )
+    });
+
+    if (existingReg) {
+      regId = existingReg.id;
+      await db.update(competitionRegistrations).set({ status: 'approved' }).where(eq(competitionRegistrations.id, regId));
+    } else {
+      const [res]: any = await db.insert(competitionRegistrations).values({
+        competitionId: compId,
+        clubId: club.id,
+        status: 'approved',
+      });
+      regId = res.insertId;
+    }
+
+    // Populate Roster
+    const members = await db.query.clubMembers.findMany({
+      where: eq(clubMembers.clubId, club.id)
+    });
+
+    // Clear existing roster for this registration
+    await db.delete(competitionRosters).where(eq(competitionRosters.registrationId, regId));
+
+    for (const member of members) {
+      await db.insert(competitionRosters).values({
+        registrationId: regId,
+        userId: member.userId,
+      });
+    }
+    console.log(`✅ Registered ${club.name} and added ${members.length} players to roster.`);
+  }
+
+  // 7. Add default Football Stat Types
+  console.log('📊 Adding default football stat types...');
+  const footballStats = [
+    { name: 'Gols', unit: 'qtd' },
+    { name: 'Assistências', unit: 'qtd' },
+    { name: 'Cartão Amarelo', unit: 'qtd', isHigherBetter: false },
+    { name: 'Cartão Vermelho', unit: 'qtd', isHigherBetter: false },
+  ];
+
+  for (const stat of footballStats) {
+    const existingStat = await db.query.statTypes.findFirst({
+      where: and(
+        eq(statTypes.modalityId, footballMod.id),
+        eq(statTypes.name, stat.name)
+      )
+    });
+
+    if (!existingStat) {
+      await db.insert(statTypes).values({
+        modalityId: footballMod.id,
+        name: stat.name,
+        unit: stat.unit,
+        isHigherBetter: stat.isHigherBetter ?? true,
       });
     }
   }

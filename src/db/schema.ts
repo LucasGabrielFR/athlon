@@ -147,10 +147,15 @@ export const competitions = mysqlTable('competitions', {
   isRegistrationManualOpen: boolean('is_registration_manual_open').notNull().default(false),
   isWindowManualOpen: boolean('is_window_manual_open').notNull().default(false),
 
+  // Knockout Settings
+  knockoutConfig: json('knockout_config'), // Configurações do mata-mata (matchupFormat, tieBreaker)
+  groupsConfig: json('groups_config'), // Configurações de grupos { groupsCount: 2, advancingPerGroup: 2 }
+
 
   startDate: timestamp('start_date'),
   endDate: timestamp('end_date'),
   createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
 });
 
 // ──────────────────────────────────────────
@@ -162,6 +167,7 @@ export const competitionRegistrations = mysqlTable('competition_registrations', 
   competitionId: bigint('competition_id', { mode: 'number', unsigned: true }).notNull(),
   clubId: bigint('club_id', { mode: 'number', unsigned: true }).notNull(),
   status: varchar('status', { length: 20 }).notNull().default('pending'), // pending | approved | rejected
+  groupId: varchar('group_id', { length: 10 }), // ex: 'A', 'B' para grupos_knockout
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 }, (table) => [
@@ -249,6 +255,74 @@ export const competitionPosts = mysqlTable('competition_posts', {
   }).onDelete('cascade'),
 ]);
 
+// ──────────────────────────────────────────
+// MATCHES
+// ──────────────────────────────────────────
+
+export const matches = mysqlTable('matches', {
+  id: serial('id').primaryKey(),
+  competitionId: bigint('competition_id', { mode: 'number', unsigned: true }).notNull(),
+  homeRegistrationId: bigint('home_registration_id', { mode: 'number', unsigned: true }),
+  awayRegistrationId: bigint('away_registration_id', { mode: 'number', unsigned: true }),
+  homeScore: int('home_score').default(0),
+  awayScore: int('away_score').default(0),
+  status: varchar('status', { length: 20 }).notNull().default('scheduled'), // scheduled | live | finished | canceled
+  startTime: timestamp('start_time'),
+  round: int('round'),
+  stage: varchar('stage', { length: 20 }).notNull().default('regular'), // regular | groups | knockout
+  seriesId: varchar('series_id', { length: 50 }), // Para agrupar partidas de ida/volta ou md3
+  metadata: json('metadata'), // mod-specific: overtime, etc
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+}, (table) => [
+  foreignKey({
+    name: 'match_comp_id_fk',
+    columns: [table.competitionId],
+    foreignColumns: [competitions.id],
+  }).onDelete('cascade'),
+  foreignKey({
+    name: 'match_home_reg_id_fk',
+    columns: [table.homeRegistrationId],
+    foreignColumns: [competitionRegistrations.id],
+  }).onDelete('cascade'),
+  foreignKey({
+    name: 'match_away_reg_id_fk',
+    columns: [table.awayRegistrationId],
+    foreignColumns: [competitionRegistrations.id],
+  }).onDelete('cascade'),
+]);
+
+// ──────────────────────────────────────────
+// MATCH EVENTS
+// ──────────────────────────────────────────
+
+export const matchEvents = mysqlTable('match_events', {
+  id: serial('id').primaryKey(),
+  matchId: bigint('match_id', { mode: 'number', unsigned: true }).notNull(),
+  registrationId: bigint('registration_id', { mode: 'number', unsigned: true }).notNull(),
+  playerId: bigint('player_id', { mode: 'number', unsigned: true }).notNull(),
+  type: varchar('type', { length: 50 }).notNull(), // goal, yellow_card, kill, etc
+  minute: int('minute'),
+  metadata: json('metadata'), // assist_player_id, etc
+  createdAt: timestamp('created_at').defaultNow(),
+}, (table) => [
+  foreignKey({
+    name: 'match_evt_match_id_fk',
+    columns: [table.matchId],
+    foreignColumns: [matches.id],
+  }).onDelete('cascade'),
+  foreignKey({
+    name: 'match_evt_player_id_fk',
+    columns: [table.playerId],
+    foreignColumns: [users.id],
+  }).onDelete('cascade'),
+  foreignKey({
+    name: 'match_evt_reg_id_fk',
+    columns: [table.registrationId],
+    foreignColumns: [competitionRegistrations.id],
+  }).onDelete('cascade'),
+]);
+
 
 // ──────────────────────────────────────────
 // PLAYER PROFILES
@@ -293,6 +367,10 @@ export const clubsRelations = relations(clubs, ({ one, many }) => ({
     fields: [clubs.presidentId],
     references: [users.id],
   }),
+  modality: one(modalities, {
+    fields: [clubs.modalityId],
+    references: [modalities.id],
+  }),
   members: many(clubMembers),
   invitations: many(clubInvitations),
 }));
@@ -332,6 +410,8 @@ export const modalitiesRelations = relations(modalities, ({ many }) => ({
   invitations: many(clubInvitations),
   competitions: many(competitions),
   positions: many(positions),
+  statTypes: many(statTypes),
+  clubs: many(clubs),
 }));
 
 export const organizationsRelations = relations(organizations, ({ one, many }) => ({
@@ -357,6 +437,40 @@ export const competitionsRelations = relations(competitions, ({ one, many }) => 
   }),
   registrations: many(competitionRegistrations),
   posts: many(competitionPosts),
+  matches: many(matches),
+}));
+
+export const matchesRelations = relations(matches, ({ one, many }) => ({
+  competition: one(competitions, {
+    fields: [matches.competitionId],
+    references: [competitions.id],
+  }),
+  homeRegistration: one(competitionRegistrations, {
+    fields: [matches.homeRegistrationId],
+    references: [competitionRegistrations.id],
+    relationName: 'match_homeRegistration',
+  }),
+  awayRegistration: one(competitionRegistrations, {
+    fields: [matches.awayRegistrationId],
+    references: [competitionRegistrations.id],
+    relationName: 'match_awayRegistration',
+  }),
+  events: many(matchEvents),
+}));
+
+export const matchEventsRelations = relations(matchEvents, ({ one }) => ({
+  match: one(matches, {
+    fields: [matchEvents.matchId],
+    references: [matches.id],
+  }),
+  registration: one(competitionRegistrations, {
+    fields: [matchEvents.registrationId],
+    references: [competitionRegistrations.id],
+  }),
+  player: one(users, {
+    fields: [matchEvents.playerId],
+    references: [users.id],
+  }),
 }));
 
 
@@ -370,6 +484,8 @@ export const competitionRegistrationsRelations = relations(competitionRegistrati
     references: [clubs.id],
   }),
   roster: many(competitionRosters),
+  homeMatches: many(matches, { relationName: 'match_homeRegistration' }),
+  awayMatches: many(matches, { relationName: 'match_awayRegistration' }),
 }));
 
 export const competitionPostsRelations = relations(competitionPosts, ({ one }) => ({
@@ -418,5 +534,12 @@ export const playerModalitiesRelations = relations(playerModalities, ({ one }) =
   secondaryPosition: one(positions, {
     fields: [playerModalities.secondaryPositionId],
     references: [positions.id],
+  }),
+}));
+
+export const statTypesRelations = relations(statTypes, ({ one }) => ({
+  modality: one(modalities, {
+    fields: [statTypes.modalityId],
+    references: [modalities.id],
   }),
 }));
