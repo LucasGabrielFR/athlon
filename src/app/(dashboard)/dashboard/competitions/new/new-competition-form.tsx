@@ -78,6 +78,19 @@ export function NewCompetitionForm({
               <option value="groups_knockout">Grupos + Mata-mata</option>
             </select>
           </div>
+          <div className="md:col-span-2 bg-slate-dark/50 border border-azure/10 rounded-2xl p-6 flex items-center justify-between group hover:border-azure/30 transition-all">
+            <div className="space-y-1">
+              <label className="text-sm font-bold text-ice flex items-center gap-2">
+                Exigir Validação da Organização
+                <Info size={14} className="text-azure opacity-50" />
+              </label>
+              <p className="text-[10px] text-ice/40 uppercase font-black italic">Se ativado, os resultados só contam após aprovação do presidente da organização</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" name="requiresValidation" className="sr-only peer" />
+              <div className="w-14 h-7 bg-slate-dark border border-azure/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:start-[4px] after:bg-azure after:border-azure after:border after:rounded-full after:h-5 after:w-6 after:transition-all peer-checked:bg-azure/20 peer-checked:border-azure"></div>
+            </label>
+          </div>
         </div>
       </section>
 
@@ -142,6 +155,8 @@ export function NewCompetitionForm({
                     <input 
                       name="groupsCount"
                       type="number"
+                      required
+                      min={1}
                       placeholder="Ex: 2"
                       defaultValue={2}
                       className="w-full bg-slate-dark border border-azure/20 rounded-xl px-4 py-3 text-ice focus:border-azure focus:outline-none transition-all font-bold"
@@ -152,6 +167,8 @@ export function NewCompetitionForm({
                     <input 
                       name="advancingPerGroup"
                       type="number"
+                      required
+                      min={1}
                       placeholder="Ex: 2"
                       defaultValue={2}
                       className="w-full bg-slate-dark border border-azure/20 rounded-xl px-4 py-3 text-ice focus:border-azure focus:outline-none transition-all font-bold"
@@ -166,6 +183,8 @@ export function NewCompetitionForm({
                   <input 
                     name="pointsPerWin"
                     type="number"
+                    required
+                    min={0}
                     defaultValue={3}
                     className="w-full bg-slate-dark border border-azure/20 rounded-xl px-4 py-3 text-ice focus:border-azure focus:outline-none transition-all font-bold text-center"
                   />
@@ -175,6 +194,8 @@ export function NewCompetitionForm({
                   <input 
                     name="pointsPerDraw"
                     type="number"
+                    required
+                    min={0}
                     defaultValue={1}
                     className="w-full bg-slate-dark border border-azure/20 rounded-xl px-4 py-3 text-ice focus:border-azure focus:outline-none transition-all font-bold text-center"
                   />
@@ -184,6 +205,8 @@ export function NewCompetitionForm({
                   <input 
                     name="pointsPerLoss"
                     type="number"
+                    required
+                    min={0}
                     defaultValue={0}
                     className="w-full bg-slate-dark border border-azure/20 rounded-xl px-4 py-3 text-ice focus:border-azure focus:outline-none transition-all font-bold text-center"
                   />
@@ -219,6 +242,8 @@ export function NewCompetitionForm({
             <input 
               name="maxTeams"
               type="number"
+              required
+              min={2}
               placeholder="Ex: 16"
               className="w-full bg-slate-dark border border-azure/20 rounded-xl px-4 py-3 text-ice focus:border-azure focus:outline-none transition-all"
             />
@@ -228,6 +253,8 @@ export function NewCompetitionForm({
             <input 
               name="entryFee"
               type="number"
+              required
+              min={0}
               defaultValue={0}
               className="w-full bg-slate-dark border border-azure/20 rounded-xl px-4 py-3 text-ice focus:border-azure focus:outline-none transition-all"
             />
@@ -237,6 +264,8 @@ export function NewCompetitionForm({
             <input 
               name="prizePool"
               type="number"
+              required
+              min={0}
               defaultValue={0}
               className="w-full bg-slate-dark border border-azure/20 rounded-xl px-4 py-3 text-ice focus:border-azure focus:outline-none transition-all"
             />
@@ -257,6 +286,8 @@ export function NewCompetitionForm({
             <input 
               name="minPlayersPerTeam"
               type="number"
+              required
+              min={1}
               defaultValue={1}
               className="w-full bg-slate-dark border border-azure/20 rounded-xl px-4 py-3 text-ice focus:border-azure focus:outline-none transition-all"
             />
@@ -266,6 +297,8 @@ export function NewCompetitionForm({
             <input 
               name="maxPlayersPerTeam"
               type="number"
+              required
+              min={1}
               placeholder="Ex: 22"
               className="w-full bg-slate-dark border border-azure/20 rounded-xl px-4 py-3 text-ice focus:border-azure focus:outline-none transition-all"
             />
@@ -286,6 +319,7 @@ export function NewCompetitionForm({
             <input 
               name="registrationStartDate"
               type="date"
+              required
               className="w-full bg-slate-dark border border-azure/20 rounded-xl px-4 py-3 text-ice focus:border-azure focus:outline-none transition-all"
             />
           </div>
@@ -294,6 +328,7 @@ export function NewCompetitionForm({
             <input 
               name="registrationEndDate"
               type="date"
+              required
               className="w-full bg-slate-dark border border-azure/20 rounded-xl px-4 py-3 text-ice focus:border-azure focus:outline-none transition-all"
             />
           </div>

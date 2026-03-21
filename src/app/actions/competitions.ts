@@ -61,6 +61,7 @@ export async function createCompetitionAction(formData: FormData) {
   const format = (formData.get('format') as string) || 'round_robin';
   const entryFee = Number(formData.get('entryFee')) || 0;
   const prizePool = Number(formData.get('prizePool')) || 0;
+  const requiresValidation = formData.get('requiresValidation') === 'on';
   
   const maxTeams = formData.get('maxTeams') ? Number(formData.get('maxTeams')) : null;
   const minPlayersPerTeam = Number(formData.get('minPlayersPerTeam')) || 1;
@@ -139,6 +140,7 @@ export async function createCompetitionAction(formData: FormData) {
     knockoutConfig,
     groupsConfig,
     status: 'planned',
+    requiresValidation,
   }).$returningId();
 
   if (!newComp?.id) redirect('/dashboard/competitions?error=creation_failed');
@@ -207,7 +209,7 @@ export async function approveRegistrationAction(formData: FormData) {
 // ── Roster Management ──────────────────────────────────────────────────────
 
 export async function addToRosterAction(formData: FormData) {
-  const { userId } = await requireSession();
+  const { userId, role } = await requireSession();
   const registrationId = Number(formData.get('registrationId'));
   const targetUserId = Number(formData.get('targetUserId'));
 
@@ -219,12 +221,25 @@ export async function addToRosterAction(formData: FormData) {
 
   if (!reg) return;
 
-  // Verify club president
+  // Verify authorization: Club President, Organizer, or Admin
   const club = await db.query.clubs.findFirst({ where: eq(clubs.id, reg.clubId) });
-  if (!club || club.presidentId !== userId) return;
+  const comp = await db.query.competitions.findFirst({ 
+    where: eq(competitions.id, reg.competitionId),
+    with: { organization: true }
+  });
+
+  if (!comp) return;
+
+  const isOrganizer = role === 'admin' || 
+                      comp.organizerId === userId || 
+                      comp.organization?.presidentId === userId;
+  const isPresident = club?.presidentId === userId;
+
+  if (!isOrganizer && !isPresident) {
+    throw new Error('Acesso negado.');
+  }
 
   // Verify competition limits
-  const comp = await db.query.competitions.findFirst({ where: eq(competitions.id, reg.competitionId) });
   if (comp?.maxPlayersPerTeam) {
     const currentRoster = await db.query.competitionRosters.findMany({
       where: eq(competitionRosters.registrationId, registrationId),
@@ -239,6 +254,48 @@ export async function addToRosterAction(formData: FormData) {
     registrationId,
     userId: targetUserId,
   });
+
+  revalidatePath(`/dashboard/competitions/${reg.competitionId}/roster`);
+}
+
+export async function removeFromRosterAction(formData: FormData) {
+  const { userId, role } = await requireSession();
+  const registrationId = Number(formData.get('registrationId'));
+  const targetUserId = Number(formData.get('targetUserId'));
+
+  if (!registrationId || !targetUserId) return;
+
+  const reg = await db.query.competitionRegistrations.findFirst({
+    where: eq(competitionRegistrations.id, registrationId),
+  });
+
+  if (!reg) return;
+
+  // Verify authorization: Club President, Organizer, or Admin
+  const club = await db.query.clubs.findFirst({ where: eq(clubs.id, reg.clubId) });
+  const comp = await db.query.competitions.findFirst({ 
+    where: eq(competitions.id, reg.competitionId),
+    with: { organization: true }
+  });
+
+  if (!comp) return;
+
+  const isOrganizer = role === 'admin' || 
+                      comp.organizerId === userId || 
+                      comp.organization?.presidentId === userId;
+  const isPresident = club?.presidentId === userId;
+
+  if (!isOrganizer && !isPresident) {
+    throw new Error('Acesso negado.');
+  }
+
+  // Remove from roster
+  await db.delete(competitionRosters).where(
+    and(
+      eq(competitionRosters.registrationId, registrationId),
+      eq(competitionRosters.userId, targetUserId)
+    )
+  );
 
   revalidatePath(`/dashboard/competitions/${reg.competitionId}/roster`);
 }
@@ -337,7 +394,7 @@ export async function updateCompetitionAction(formData: FormData) {
   // Fields with restrictions if status !== 'planned'
   const updates: any = { name, description, rulesJson };
 
-  if (comp.status === 'planned' || role === 'admin') {
+  if (comp.status === 'planned' || comp.status === 'registration' || role === 'admin') {
     updates.maxTeams = formData.get('maxTeams') ? Number(formData.get('maxTeams')) : comp.maxTeams;
     updates.minPlayersPerTeam = formData.get('minPlayersPerTeam') ? Number(formData.get('minPlayersPerTeam')) : comp.minPlayersPerTeam;
     updates.maxPlayersPerTeam = formData.get('maxPlayersPerTeam') ? Number(formData.get('maxPlayersPerTeam')) : comp.maxPlayersPerTeam;
@@ -363,6 +420,10 @@ export async function updateCompetitionAction(formData: FormData) {
         pointsPerLoss: formData.get('pointsPerLoss') ? Number(formData.get('pointsPerLoss')) : (gConfig?.pointsPerLoss ?? 0),
         tieBreakerOrder: tieOrderRaw ? tieOrderRaw.split(',').map(s => s.trim()) : (gConfig?.tieBreakerOrder || ['pts', 'wins', 'goalDiff', 'goalsFor'])
       };
+    }
+
+    if (formData.has('requiresValidation')) {
+      updates.requiresValidation = formData.get('requiresValidation') === 'on';
     }
   }
 
@@ -686,11 +747,18 @@ export async function recordMatchEventAction(formData: FormData) {
                        (match.competition.organizationId && (await db.query.organizations.findFirst({ where: eq(organizations.id, match.competition.organizationId) }))?.presidentId === userId);
 
     if (!isAuthorized) {
-       // Check if user is president of one of the competing clubs
-       const homeClub = match.homeRegistrationId ? await db.query.clubs.findFirst({ where: eq(clubs.id, match.homeRegistrationId) }) : null;
-       const awayClub = match.awayRegistrationId ? await db.query.clubs.findFirst({ where: eq(clubs.id, match.awayRegistrationId) }) : null;
+       // Check if user is president of one of the participating clubs
+       const homeReg = match.homeRegistrationId ? await db.query.competitionRegistrations.findFirst({
+         where: eq(competitionRegistrations.id, match.homeRegistrationId),
+         with: { club: true }
+       }) : null;
        
-       if (homeClub?.presidentId === userId || awayClub?.presidentId === userId) {
+       const awayReg = match.awayRegistrationId ? await db.query.competitionRegistrations.findFirst({
+         where: eq(competitionRegistrations.id, match.awayRegistrationId),
+         with: { club: true }
+       }) : null;
+
+       if (homeReg?.club?.presidentId === userId || awayReg?.club?.presidentId === userId) {
           isAuthorized = true;
        }
     }
@@ -753,10 +821,18 @@ export async function updateMatchStatusAction(
                        (comp.organizationId && (await db.query.organizations.findFirst({ where: eq(organizations.id, comp.organizationId) }))?.presidentId === userId);
 
     if (!isAuthorized) {
-       const homeClub = match.homeRegistrationId ? await db.query.clubs.findFirst({ where: eq(clubs.id, match.homeRegistrationId) }) : null;
-       const awayClub = match.awayRegistrationId ? await db.query.clubs.findFirst({ where: eq(clubs.id, match.awayRegistrationId) }) : null;
+       // Check if user is president of one of the participating clubs
+       const homeReg = match.homeRegistrationId ? await db.query.competitionRegistrations.findFirst({
+         where: eq(competitionRegistrations.id, match.homeRegistrationId),
+         with: { club: true }
+       }) : null;
        
-       if (homeClub?.presidentId === userId || awayClub?.presidentId === userId) {
+       const awayReg = match.awayRegistrationId ? await db.query.competitionRegistrations.findFirst({
+         where: eq(competitionRegistrations.id, match.awayRegistrationId),
+         with: { club: true }
+       }) : null;
+
+       if (homeReg?.club?.presidentId === userId || awayReg?.club?.presidentId === userId) {
           isAuthorized = true;
        }
     }
@@ -801,54 +877,114 @@ export async function updateMatchStatusAction(
         });
       }
 
-      // Knockout Component Progression
-      if (status === 'finished' && (comp.format === 'knockout' || comp.format === 'groups_knockout')) {
-        const currentMatch = await tx.query.matches.findFirst({ where: eq(matches.id, matchId) });
-        if (currentMatch && currentMatch.round) {
-          const hScore = currentMatch.homeScore || 0;
-          const aScore = currentMatch.awayScore || 0;
-          let winnerId: number | null = null;
-          if (hScore > aScore) winnerId = currentMatch.homeRegistrationId;
-          else if (aScore > hScore) winnerId = currentMatch.awayRegistrationId;
-          // Note: if tied and penaltys/extra time is enabled, the match should either reflect this in score or we need custom tie-breaker field. For now, we assume simple tie-breaker by score.
-
-          if (winnerId) {
-             const roundMatches = await tx.query.matches.findMany({
-               where: and(eq(matches.competitionId, match.competitionId), eq(matches.round, currentMatch.round)),
-               orderBy: (m, { asc }) => [asc(m.id)]
-             });
-             const matchIndex = roundMatches.findIndex(m => m.id === currentMatch.id);
-             
-             if (matchIndex !== -1) {
-               const nextRound = currentMatch.round + 1;
-               const nextMatchIndex = Math.floor(matchIndex / 2);
-               const isHome = matchIndex % 2 === 0;
-
-               const nextRoundMatches = await tx.query.matches.findMany({
-                 where: and(eq(matches.competitionId, match.competitionId), eq(matches.round, nextRound)),
-                 orderBy: (m, { asc }) => [asc(m.id)]
-               });
-
-               const nextMatch = nextRoundMatches[nextMatchIndex];
-               if (nextMatch) {
-                 await tx.update(matches)
-                   .set(isHome ? { homeRegistrationId: winnerId } : { awayRegistrationId: winnerId })
-                   .where(eq(matches.id, nextMatch.id));
-                 
-                 // If the next match now has both teams and it was a BYE slot (unlikely but possible), 
-                 // we would handle recursive progression, but the user will finish matches manually mostly.
-               }
-             }
+      // 3. Logic for progression and validation
+      if (status === 'finished') {
+        if (!comp.requiresValidation) {
+          // Auto-validate and progress if validation is not required
+          await tx.update(matches)
+            .set({ isValidated: true })
+            .where(eq(matches.id, matchId));
+          
+          if (comp.format === 'knockout' || comp.format === 'groups_knockout') {
+            const currentMatch = await tx.query.matches.findFirst({ where: eq(matches.id, matchId) });
+            if (currentMatch) await processKnockoutProgression(tx, currentMatch);
           }
         }
       }
     });
 
-    revalidatePath(`/dashboard/competitions/${match.competitionId}`);
+    revalidatePath(`/dashboard/competitions/${comp.id}`);
     return { success: true };
   } catch (err: any) {
     console.error('Update Match Status Error:', err);
     return { success: false, error: err.message };
+  }
+}
+
+// ── Match Validation ───────────────────────────────────────────────────────
+
+export async function validateMatchAction(formData: FormData) {
+  const { userId, role } = await requireSession();
+  const matchId = Number(formData.get('matchId'));
+
+  try {
+    const match = await db.query.matches.findFirst({
+      where: eq(matches.id, matchId),
+      with: { competition: { with: { organization: true } } }
+    });
+
+    if (!match) throw new Error('Partida não encontrada.');
+    if (match.status !== 'finished') throw new Error('Apenas partidas finalizadas podem ser validadas.');
+
+    const comp = match.competition;
+    const isOrgPresident = comp.organization?.presidentId === userId;
+    const isAdmin = role === 'admin';
+
+    if (!isAdmin && !isOrgPresident) {
+      throw new Error('Acesso negado. Apenas o presidente da organização ou admin pode validar resultados.');
+    }
+
+    await db.transaction(async (tx) => {
+      await tx.update(matches)
+        .set({ isValidated: true, updatedAt: new Date() })
+        .where(eq(matches.id, matchId));
+
+      // 2. Trigger knockout progression if needed
+      if (comp.format === 'knockout' || comp.format === 'groups_knockout') {
+        await processKnockoutProgression(tx, match as any);
+      }
+
+      // 3. System post
+      await tx.insert(competitionPosts).values({
+        competitionId: comp.id,
+        authorId: userId,
+        type: 'system',
+        content: `✅ Resultado validado pela organização: **${match.homeScore} x ${match.awayScore}**.`
+      });
+    });
+
+    revalidatePath(`/dashboard/competitions/${comp.id}`);
+    return { success: true };
+  } catch (err: any) {
+    console.error('Validation Error:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+async function processKnockoutProgression(tx: any, currentMatch: any) {
+  if (!currentMatch.round) return;
+  
+  const hScore = currentMatch.homeScore || 0;
+  const aScore = currentMatch.awayScore || 0;
+  let winnerId: number | null = null;
+  
+  if (hScore > aScore) winnerId = currentMatch.homeRegistrationId;
+  else if (aScore > hScore) winnerId = currentMatch.awayRegistrationId;
+
+  if (winnerId) {
+    const roundMatches = await tx.query.matches.findMany({
+      where: and(eq(matches.competitionId, currentMatch.competitionId), eq(matches.round, currentMatch.round)),
+      orderBy: (m: any, { asc }: any) => [asc(m.id)]
+    });
+    const matchIndex = roundMatches.findIndex((m: any) => m.id === currentMatch.id);
+    
+    if (matchIndex !== -1) {
+      const nextRound = currentMatch.round + 1;
+      const nextMatchIndex = Math.floor(matchIndex / 2);
+      const isHomeSlot = matchIndex % 2 === 0;
+
+      const nextRoundMatches = await tx.query.matches.findMany({
+        where: and(eq(matches.competitionId, currentMatch.competitionId), eq(matches.round, nextRound)),
+        orderBy: (m: any, { asc }: any) => [asc(m.id)]
+      });
+
+      const nextMatch = nextRoundMatches[nextMatchIndex];
+      if (nextMatch) {
+        await tx.update(matches)
+          .set(isHomeSlot ? { homeRegistrationId: winnerId } : { awayRegistrationId: winnerId })
+          .where(eq(matches.id, nextMatch.id));
+      }
+    }
   }
 }
 

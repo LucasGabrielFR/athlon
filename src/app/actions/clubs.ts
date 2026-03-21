@@ -1,8 +1,8 @@
 'use server';
 
 import { db } from '@/db';
-import { clubs, clubMembers, clubInvitations, users, modalities } from '@/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { clubs, clubMembers, clubInvitations, users, modalities, competitionRegistrations, competitionRosters } from '@/db/schema';
+import { eq, and, inArray } from 'drizzle-orm';
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
@@ -25,6 +25,21 @@ async function requireClubPresident(clubId: number, userId: number) {
     throw new Error('Acesso negado: apenas o presidente pode realizar esta ação.');
   }
   return club;
+}
+
+async function syncRosterOnLeave(clubId: number, userId: number) {
+  const regs = await db.query.competitionRegistrations.findMany({
+    where: eq(competitionRegistrations.clubId, clubId),
+  });
+  if (regs.length === 0) return;
+  const regIds = regs.map(r => r.id);
+
+  await db.delete(competitionRosters).where(
+    and(
+      inArray(competitionRosters.registrationId, regIds),
+      eq(competitionRosters.userId, userId)
+    )
+  );
 }
 
 // ── Create Club ────────────────────────────────────────────────────────────
@@ -309,7 +324,15 @@ export async function dismissPlayerAction(formData: FormData) {
 
   await requireClubPresident(clubId, userId);
 
+  await requireClubPresident(clubId, userId);
+
+  const member = await db.query.clubMembers.findFirst({ where: eq(clubMembers.id, memberId) });
+
   await db.delete(clubMembers).where(eq(clubMembers.id, memberId));
+  
+  if (member) {
+    await syncRosterOnLeave(clubId, member.userId);
+  }
 
   revalidatePath(`/dashboard/clubs/${clubId}`);
 }
@@ -332,6 +355,8 @@ export async function leaveClubAction(formData: FormData) {
   if (club?.presidentId === userId) return;
 
   await db.delete(clubMembers).where(eq(clubMembers.id, member.id));
+  
+  await syncRosterOnLeave(clubId, userId);
 
   revalidatePath(`/dashboard/clubs/${clubId}`);
   revalidatePath('/dashboard/clubs');

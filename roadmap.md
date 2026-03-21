@@ -59,10 +59,10 @@ Este roadmap detalha as fases de desenvolvimento do projeto Athlon, permitindo u
 *O dia do jogo e a coleta de dados.*
 
 - [x] **Gerador de Tabelas (Round Robin):** Algoritmo para criar a ordem dos jogos em pontos corridos.
-- [ ] **Gerador de Mata-mata (Bracket):** Lógica para chaves de eliminação simples e dupla.
+- [x] **Gerador de Mata-mata (Bracket):** Lógica para chaves de eliminação simples e dupla.
 - [x] **Report de Resultados (Súmula):** Interface para registro de placares e eventos em tempo real.
 - [x] **Eventos de Partida:** Registro atômico de Gols, Kills, Cartões, etc.
-- [ ] **Validação & Disputa:** Fluxo de contestação e aprovação final dos resultados pela organização.
+- [x] **Validação & Disputa:** Fluxo de contestação e aprovação final dos resultados pela organização.
 
 ---
 

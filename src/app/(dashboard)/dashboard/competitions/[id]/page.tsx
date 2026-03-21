@@ -1,9 +1,9 @@
 import { auth } from '@/auth';
 import { db } from '@/db';
 import { competitions, competitionRegistrations, clubs, users, competitionPosts, matches } from '@/db/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, inArray } from 'drizzle-orm';
 import { notFound } from 'next/navigation';
-import { registerClubAction, approveRegistrationAction, deleteCompetitionAction, deactivateCompetitionAction, generateMatchesAction } from '@/app/actions/competitions';
+import { registerClubAction, approveRegistrationAction, deleteCompetitionAction, deactivateCompetitionAction, generateMatchesAction, validateMatchAction } from '@/app/actions/competitions';
 import Link from 'next/link';
 import { ConfirmButton } from '@/components/confirm-button';
 import { CompetitionFeed } from '@/components/competition-feed';
@@ -12,7 +12,7 @@ import { ManualStatusToggles } from '@/components/manual-status-toggles';
 import { StartTournamentButton } from '@/components/start-tournament-button';
 import { StandingsTable, type TeamStanding } from '@/components/standings-table';
 import { KnockoutBracket } from '@/components/knockout-bracket';
-import { LayoutDashboard, MessageSquare, Settings, ShieldAlert, Users, ChevronRight, Trophy, Calendar, ListOrdered } from 'lucide-react';
+import { LayoutDashboard, MessageSquare, Settings, ShieldAlert, Users, ChevronRight, Trophy, Calendar, ListOrdered, CheckCheck } from 'lucide-react';
 
 export default async function CompetitionDetailPage({ 
   params,
@@ -26,6 +26,8 @@ export default async function CompetitionDetailPage({
   const compId = Number(id);
   const session = await auth();
   const userId = Number((session?.user as { id?: string | number }).id);
+  const role = (session?.user as any)?.role as string | undefined;
+  const isAdmin = role === 'admin';
 
   const comp = await db.query.competitions.findFirst({
     where: eq(competitions.id, compId),
@@ -62,6 +64,7 @@ export default async function CompetitionDetailPage({
   const myRegistrations = clubIds.length > 0 ? await db.query.competitionRegistrations.findMany({
     where: and(
       eq(competitionRegistrations.competitionId, compId),
+      inArray(competitionRegistrations.clubId, clubIds)
     ),
     with: { club: true }
   }) : [];
@@ -107,7 +110,7 @@ export default async function CompetitionDetailPage({
     const tieBreakers = groupsConfig.tieBreakerOrder || ['pts', 'wins', 'goalDiff', 'goalsFor'];
 
     comp.matches.forEach(match => {
-      if (match.status !== 'finished' || match.stage === 'knockout') return;
+      if (match.status !== 'finished' || match.stage === 'knockout' || (comp.requiresValidation && !match.isValidated)) return;
       const home = match.homeRegistration ? standingsMap.get(match.homeRegistration.clubId) : undefined;
       const away = match.awayRegistration ? standingsMap.get(match.awayRegistration.clubId) : undefined;
       if (home && away) {
@@ -156,7 +159,9 @@ export default async function CompetitionDetailPage({
         <div className="absolute bottom-10 left-10 z-20">
           <div className="flex items-center gap-3 mb-3">
             <span className="text-[10px] bg-azure text-slate px-3 py-1 rounded-lg font-black uppercase tracking-[0.2em] shadow-lg shadow-azure/20">{comp.modality?.name}</span>
-            <span className="text-[10px] border border-ice/20 bg-slate/40 backdrop-blur-md text-ice px-3 py-1 rounded-lg font-black uppercase tracking-[0.2em]">{comp.format === 'knockout' ? 'Mata-mata' : 'Pontos Corridos'}</span>
+            <span className="text-[10px] border border-ice/20 bg-slate/40 backdrop-blur-md text-ice px-3 py-1 rounded-lg font-black uppercase tracking-[0.2em]">
+              {comp.format === 'knockout' ? 'Mata-mata' : comp.format === 'groups_knockout' ? 'Grupos + Mata-mata' : 'Pontos Corridos'}
+            </span>
           </div>
           <h1 className="text-5xl font-black text-ice tracking-tighter drop-shadow-2xl italic leading-none">{comp.name}</h1>
           <p className="text-ice/60 text-sm font-medium italic mt-3 flex items-center gap-2">
@@ -264,25 +269,34 @@ export default async function CompetitionDetailPage({
                 ))}
               </div>
 
-              {/* Equipes Confirmadas */}
+              {/* Equipes Participantes */}
               {allRegistrations.filter(r => r.status === 'approved').length > 0 && (
                 <div className="space-y-6">
                   <div className="flex items-center justify-between px-2">
                     <h3 className="text-[10px] font-black text-azure uppercase tracking-[0.4em] italic leading-none">Equipes Participantes</h3>
                     <span className="text-[10px] font-black text-ice/20 uppercase tracking-widest">{allRegistrations.filter(r => r.status === 'approved').length} Equipes</span>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {allRegistrations.filter(r => r.status === 'approved').map(reg => (
-                      <div key={reg.id} className="bg-slate-dark/40 border border-azure/10 px-6 py-4 rounded-3xl flex items-center gap-4 group hover:border-azure/30 transition-all shadow-lg">
-                        <div className="h-10 w-10 bg-azure/10 rounded-xl flex items-center justify-center font-black text-azure text-xs italic border border-azure/20 group-hover:bg-azure group-hover:text-slate transition-all duration-500">
-                          {reg.club.tag}
+                  <div className="grid grid-cols-1 gap-4">
+                    {allRegistrations.filter(r => r.status === 'approved').map(reg => {
+                      const isMine = clubIds.includes(reg.clubId);
+                      return (
+                        <div key={reg.id} className="bg-slate border border-azure/10 p-8 rounded-[2rem] flex items-center justify-between group hover:border-azure/20 transition-all shadow-lg">
+                          <div className="flex items-center gap-6">
+                            <div className="h-16 w-16 bg-azure rounded-full flex items-center justify-center font-black text-xl text-slate shadow-xl shadow-azure/10 group-hover:scale-105 transition-transform italic">{reg.club.tag}</div>
+                            <div>
+                              <h4 className="text-2xl font-black text-ice italic tracking-tighter leading-none">{reg.club.name}</h4>
+                              <p className="text-[10px] text-ice/40 uppercase font-bold tracking-widest mt-2 italic">Confirmado em {new Date(reg.updatedAt!).toLocaleDateString('pt-BR')}</p>
+                            </div>
+                          </div>
+                          <Link 
+                            href={`/dashboard/competitions/${compId}/roster?registrationId=${reg.id}`}
+                            className="text-[10px] text-azure hover:text-ice font-black uppercase tracking-widest border-b border-azure/0 hover:border-ice transition-all"
+                          >
+                            {isMine ? 'Gerenciar Elenco →' : 'Ver Elenco →'}
+                          </Link>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-black text-ice truncate italic tracking-tight">{reg.club.name}</p>
-                          <p className="text-[9px] text-ice/30 uppercase font-bold tracking-widest">Confirmado</p>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -319,33 +333,23 @@ export default async function CompetitionDetailPage({
                 </div>
               )}
 
-              {/* My Registrations Status */}
-              {myRegistrations.length > 0 && (
+              {/* Suas Inscrições Pendentes */}
+              {myRegistrations.filter(r => r.status === 'pending').length > 0 && (
                 <div className="space-y-6">
                   <h3 className="text-[10px] font-black text-azure uppercase tracking-[0.4em] px-2 italic">Status da sua Inscrição</h3>
                   <div className="grid gap-4">
-                    {myRegistrations.map(reg => (
-                      <div key={reg.id} className="bg-slate border border-azure/10 p-8 rounded-[2rem] flex items-center justify-between group hover:border-azure/20 transition-all shadow-lg">
+                    {myRegistrations.filter(r => r.status === 'pending').map(reg => (
+                      <div key={reg.id} className="bg-slate border border-amber-500/10 p-8 rounded-[2rem] flex items-center justify-between group hover:border-amber-500/20 transition-all shadow-lg">
                         <div className="flex items-center gap-6">
-                          <div className="h-16 w-16 bg-azure rounded-full flex items-center justify-center font-black text-xl text-slate shadow-xl shadow-azure/10 group-hover:scale-105 transition-transform italic">{reg.club.tag}</div>
+                          <div className="h-16 w-16 bg-amber-500 rounded-full flex items-center justify-center font-black text-xl text-slate shadow-xl shadow-amber-500/10 group-hover:scale-105 transition-transform italic">{reg.club.tag}</div>
                           <div>
                             <h4 className="text-2xl font-black text-ice italic tracking-tighter leading-none">{reg.club.name}</h4>
-                            <p className="text-[10px] text-ice/40 uppercase font-bold tracking-widest mt-2">Inscrito em {new Date(reg.createdAt!).toLocaleDateString('pt-BR')}</p>
+                            <p className="text-[10px] text-ice/40 uppercase font-bold tracking-widest mt-2 italic">Aguardando aprovação do organizador</p>
                           </div>
                         </div>
-                        <div className="flex flex-col items-end gap-3">
-                          <span className={`text-[10px] px-4 py-2 rounded-xl font-black uppercase tracking-widest ${
-                            reg.status === 'approved' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/10'
-                          }`}>
-                            {reg.status === 'approved' ? '✓ Confirmado' : '⏳ Pendente'}
-                          </span>
-                          <Link 
-                            href={`/dashboard/competitions/${compId}/roster?registrationId=${reg.id}`}
-                            className="text-[10px] text-azure hover:text-ice font-black uppercase tracking-widest border-b border-azure/0 hover:border-ice transition-all"
-                          >
-                            Gerenciar Elenco →
-                          </Link>
-                        </div>
+                        <span className="text-[10px] px-4 py-2 rounded-xl font-black uppercase tracking-widest bg-amber-500/10 text-amber-400 border border-amber-500/10">
+                          ⏳ Pendente
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -378,14 +382,28 @@ export default async function CompetitionDetailPage({
                         const canManage = isOrganizer || 
                                           match.homeRegistration?.club.presidentId === userId || 
                                           match.awayRegistration?.club.presidentId === userId;
+                        const isOrgPresident = comp.organization?.presidentId === userId;
+                        const needsValidation = comp.requiresValidation && match.status === 'finished' && !match.isValidated;
                         
                         return (
-                          <div key={match.id} className="relative group bg-slate border border-azure/5 rounded-[2rem] p-6 flex flex-col sm:flex-row items-center justify-between gap-6 hover:border-azure/20 transition-all shadow-xl overflow-hidden">
-                            {canManage && (
+                          <div key={match.id} className={`relative group bg-slate border ${needsValidation ? 'border-amber-500/50 grayscale-[0.5]' : match.isValidated && comp.requiresValidation ? 'border-emerald-500/30' : 'border-azure/5'} rounded-[2rem] p-6 flex flex-col sm:flex-row items-center justify-between gap-6 hover:border-azure/20 transition-all shadow-xl overflow-hidden`}>
+                            {needsValidation && (
+                              <div className="absolute inset-0 bg-amber-500/5 pointer-events-none" />
+                            )}
+                            {(canManage || (isOrgPresident && needsValidation)) && (
                               <div className="absolute top-3 right-5 flex gap-2">
+                                {needsValidation && (isOrgPresident || isAdmin) && (
+                                  <form action={validateMatchAction as any}>
+                                    <input type="hidden" name="matchId" value={match.id} />
+                                    <button className="bg-amber-500 hover:bg-emerald-500 text-slate px-4 py-1.5 rounded-lg flex items-center gap-2 transition-all group/val">
+                                      <CheckCheck size={12} className="group-hover/val:scale-110 transition-transform" />
+                                      <span className="text-[9px] font-black uppercase tracking-widest">Validar Resultado</span>
+                                    </button>
+                                  </form>
+                                )}
                                 <Link 
                                   href={`/dashboard/competitions/${compId}/matches/${match.id}`} 
-                                  className="text-[8px] font-black text-azure hover:text-ice uppercase tracking-widest flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0"
+                                  className="bg-slate-dark/50 border border-azure/20 text-[8px] font-black text-azure hover:text-ice px-3 py-1.5 rounded-lg uppercase tracking-widest flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all transform translate-y-4 group-hover:translate-y-0"
                                 >
                                   Súmula <ChevronRight className="w-2 h-2" />
                                 </Link>
@@ -408,8 +426,13 @@ export default async function CompetitionDetailPage({
                               <span className={`text-[8px] font-black uppercase tracking-widest mt-1 ${
                                 match.status === 'live' ? 'text-red-500 animate-pulse' : 'text-ice/20'
                               }`}>
-                                {match.status === 'scheduled' ? 'Agendado' : match.status === 'live' ? '• Ao Vivo' : 'Finalizado'}
+                                {match.status === 'scheduled' ? 'Agendado' : match.status === 'live' ? '• Ao Vivo' : needsValidation ? 'Aguardando Validação' : 'Finalizado'}
                               </span>
+                              {match.isValidated && comp.requiresValidation && (
+                                <span className="flex items-center gap-1 text-[7px] text-emerald-500 font-black uppercase tracking-widest mt-0.5">
+                                  <CheckCheck size={8} /> Validado
+                                </span>
+                              )}
                             </div>
 
                             {/* Away Team */}
@@ -482,7 +505,7 @@ export default async function CompetitionDetailPage({
                   <div className="space-y-4">
                     <p className="text-[10px] font-black text-azure uppercase tracking-widest italic px-1">Ações do Torneio</p>
                     <div className="flex flex-wrap gap-4">
-                      <EditCompetitionDialog competition={comp} />
+                      <EditCompetitionDialog competition={comp} role={role} />
                       <StartTournamentButton 
                         competitionId={compId}
                         disabled={comp.status !== 'registration' || allRegistrations.filter(r => r.status === 'approved').length < 2}

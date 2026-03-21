@@ -19,10 +19,12 @@ const ALL_OPTIONS: Record<string, TieBreakerOption> = {
 
 export function TieBreakerSorter({ 
   initialOrder, 
-  onChange 
+  onChange,
+  disabled = false
 }: { 
   initialOrder: string[], 
-  onChange: (newOrder: string[]) => void 
+  onChange: (newOrder: string[]) => void,
+  disabled?: boolean
 }) {
   const [items, setItems] = useState<string[]>(() => {
     // Filter out options that might not exist in ALL_OPTIONS and ensure all ALL_OPTIONS keys are present
@@ -32,6 +34,7 @@ export function TieBreakerSorter({
   });
 
   const handleReorder = (newItems: string[]) => {
+    if (disabled) return;
     setItems(newItems);
     onChange(newItems);
   };
@@ -48,7 +51,7 @@ export function TieBreakerSorter({
         axis="y" 
         values={items} 
         onReorder={handleReorder}
-        className="space-y-2"
+        className={`space-y-2 ${disabled ? 'opacity-40 pointer-events-none grayscale' : ''}`}
       >
         {items.map((id, index) => {
           const option = ALL_OPTIONS[id];
@@ -58,9 +61,10 @@ export function TieBreakerSorter({
             <Reorder.Item
               key={id}
               value={id}
-              className="relative"
+              drag={!disabled}
+              className={`relative ${disabled ? 'cursor-not-allowed' : 'cursor-grab active:cursor-grabbing'}`}
             >
-              <div className="group flex items-center gap-4 bg-slate-dark/50 border border-azure/10 hover:border-azure/30 p-4 rounded-2xl transition-all cursor-grab active:cursor-grabbing shadow-lg hover:shadow-azure/5">
+              <div className="group flex items-center gap-4 bg-slate-dark/50 border border-azure/10 hover:border-azure/30 p-4 rounded-2xl transition-all shadow-lg hover:shadow-azure/5">
                 <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-azure/10 text-azure font-black text-xs italic">
                   {index + 1}º
                 </div>

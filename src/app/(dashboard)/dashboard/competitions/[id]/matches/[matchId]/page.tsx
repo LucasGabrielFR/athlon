@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Trophy, ChevronLeft, Clock, Play, CheckCircle2, AlertCircle, Plus, ChevronRight } from 'lucide-react';
 import { recordMatchEventAction, updateMatchStatusAction } from '@/app/actions/competitions';
 import { MatchPolling } from '@/components/match-polling';
+import { MatchEventForm } from '@/components/match-event-form';
 
 export default async function MatchManagementPage({ 
   params 
@@ -43,7 +44,7 @@ export default async function MatchManagementPage({
       redirect(`/dashboard/competitions/${compId}?tab=bracket`);
   }
 
-  const userRole = (session?.user as any)?.role;
+  const userRole = (session?.user as any)?.role || 'client';
   const isOrganizer = userId === match.competition.organizerId || 
                       userRole === 'admin' || 
                       (match.competition.organization && match.competition.organization.presidentId === userId);
@@ -143,78 +144,30 @@ export default async function MatchManagementPage({
             </div>
          </div>
       </div>
-
+      
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
           {/* Event Recording Form */}
           <div className="lg:col-span-1">
-             <div className="bg-slate border border-azure/10 rounded-[2.5rem] p-8 space-y-8 sticky top-8">
-                <div>
-                   <h3 className="text-lg font-black text-ice italic flex items-center gap-2">
-                      <Plus className="w-5 h-5 text-azure" /> Registrar Evento
-                   </h3>
-                   <p className="text-[9px] text-ice/40 uppercase font-black tracking-widest mt-1">Adicione gols, cartões e kills</p>
-                </div>
-
-                <form action={async (formData) => { 
-                   "use server";
-                   await recordMatchEventAction(formData); 
-                }} className="space-y-6">
-                   <input type="hidden" name="matchId" value={matchId} />
-                   
-                   <div className="space-y-2">
-                      <label className="text-[9px] font-black text-azure uppercase tracking-widest">Equipe</label>
-                      <select name="registrationId" required className="w-full bg-slate-dark border border-azure/10 rounded-xl px-4 py-3 text-[11px] text-ice font-bold focus:border-azure outline-none transition-all cursor-pointer">
-                         <option value={match.homeRegistrationId!}>{match.homeRegistration.club.name}</option>
-                         <option value={match.awayRegistrationId!}>{match.awayRegistration.club.name}</option>
-                      </select>
-                   </div>
-
-                   <div className="space-y-2">
-                      <label className="text-[9px] font-black text-azure uppercase tracking-widest">Tipo de Evento</label>
-                      <select name="type" required className="w-full bg-slate-dark border border-azure/10 rounded-xl px-4 py-3 text-[11px] text-ice font-bold focus:border-azure outline-none transition-all cursor-pointer">
-                          {modStats.length > 0 ? (
-                              modStats.map(stat => (
-                                  <option key={stat.id} value={stat.name}>{stat.name}</option>
-                              ))
-                          ) : (
-                              <>
-                                 <option value="Gol">Gol</option>
-                                 <option value="Cartão Amarelo">Cartão Amarelo</option>
-                                 <option value="Cartão Vermelho">Cartão Vermelho</option>
-                              </>
-                          )}
-                      </select>
-                   </div>
-
-                   <div className="space-y-2">
-                      <label className="text-[9px] font-black text-azure uppercase tracking-widest">Jogador</label>
-                      <select name="playerId" required className="w-full bg-slate-dark border border-azure/10 rounded-xl px-4 py-3 text-[11px] text-ice font-bold focus:border-azure outline-none transition-all cursor-pointer">
-                         <optgroup label={match.homeRegistration.club.name}>
-                            {match.homeRegistration.roster.map(r => (
-                                <option key={r.userId} value={r.userId}>{r.user.name}</option>
-                            ))}
-                         </optgroup>
-                         <optgroup label={match.awayRegistration.club.name}>
-                            {match.awayRegistration.roster.map(r => (
-                                <option key={r.userId} value={r.userId}>{r.user.name}</option>
-                            ))}
-                         </optgroup>
-                      </select>
-                   </div>
-
-                    <div className="space-y-2">
-                       <label className="text-[9px] font-black text-azure uppercase tracking-widest">Minuto</label>
-                       <input type="number" name="minute" defaultValue={0} required className="w-full bg-slate-dark border border-azure/10 rounded-xl px-4 py-3 text-[11px] text-ice font-bold focus:border-azure outline-none" />
-                    </div>
-
-                   <button 
-                    disabled={match.status === 'finished'}
-                    className="w-full bg-azure hover:bg-azure-dark text-slate py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all shadow-xl shadow-azure/10 disabled:opacity-20 flex items-center justify-center gap-2"
-                   >
-                       Registrar Evento
-                   </button>
-                </form>
-             </div>
+             <MatchEventForm 
+                matchId={matchId}
+                homeTeam={{
+                   id: match.homeRegistrationId!,
+                   name: match.homeRegistration.club.name,
+                   roster: match.homeRegistration.roster.map(r => ({ userId: r.userId, name: r.user.name }))
+                }}
+                awayTeam={{
+                   id: match.awayRegistrationId!,
+                   name: match.awayRegistration.club.name,
+                   roster: match.awayRegistration.roster.map(r => ({ userId: r.userId, name: r.user.name }))
+                }}
+                statTypes={modStats}
+                compId={compId}
+                manageableRegistrationIds={[
+                    ...(isHomePresident || isOrganizer ? [match.homeRegistrationId!] : []),
+                    ...(isAwayPresident || isOrganizer ? [match.awayRegistrationId!] : [])
+                 ]}
+                status={match.status}
+             />
           </div>
 
           {/* Events Feed */}

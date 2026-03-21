@@ -129,6 +129,7 @@ export const competitions = mysqlTable('competitions', {
   modalityId: bigint('modality_id', { mode: 'number', unsigned: true }).references(() => modalities.id, { onDelete: 'cascade' }),
   organizationId: bigint('organization_id', { mode: 'number', unsigned: true }).references(() => organizations.id, { onDelete: 'cascade' }),
   organizerId: bigint('organizer_id', { mode: 'number', unsigned: true }).references(() => users.id, { onDelete: 'cascade' }),
+  description: text('description'),
   rulesJson: json('rules_json'),
   format: varchar('format', { length: 50 }).notNull().default('round_robin'),
   isPrivate: boolean('is_private').notNull().default(false),
@@ -156,6 +157,7 @@ export const competitions = mysqlTable('competitions', {
   endDate: timestamp('end_date'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
+  requiresValidation: boolean('requires_validation').notNull().default(false),
 });
 
 // ──────────────────────────────────────────
@@ -274,6 +276,7 @@ export const matches = mysqlTable('matches', {
   metadata: json('metadata'), // mod-specific: overtime, etc
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
+  isValidated: boolean('is_validated').notNull().default(false),
 }, (table) => [
   foreignKey({
     name: 'match_comp_id_fk',

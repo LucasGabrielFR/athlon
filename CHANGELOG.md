@@ -10,6 +10,20 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.
 - **Hierarquia de Desempate Drag-and-Drop**: Implementado seletor visual premium para definir a prioridade dos critérios de desempate (Pontos, Vitórias, Saldo, Gols Pró).
 - **Visibilidade Inteligente de Abas**: A aba "Classificação" em detalhes da competição agora é ocultada automaticamente para torneios de formato Mata-mata puro.
 - **Segurança e Integridade na Exclusão**: Reformulada a exclusão de competições para garantir que apenas Admins possam excluir torneios em andamento, com limpeza manual garantida de todos os dados relacionados (Partidas, Eventos, Elencos e Registros).
+- **Sistema de Validação de Partidas**: Organizações podem agora exigir que os resultados sejam validados pelo presidente ou administrador antes de contar pontos na classificação ou gerar avanços em mata-matas.
+- **Resiliência de Dados**: Adicionadas validações rigorosas em formulários (campos obrigatórios e valores mínimos) para evitar competições com dados nulos ou inválidos.
+- **Novo campo Descrição**: Adicionado campo de descrição para competições no banco de dados e UI.
+
+### Changed
+- **Configuração de Git**: Pasta `.agent/` adicionada ao `.gitignore` para manter o estado interno do assistente IA fora do controle de versão.
+- **Flexibilidade Pré-Torneio**: O organizador agora pode editar todas as configurações da competição (exceto o formato estrutural) durante toda a fase de planejamento e inscrições, sendo estas travadas automaticamente apenas no início oficial dos jogos.
+- **UI de Formatos**: Corrigido erro visual onde competições de "Grupos + Mata-mata" eram incorretamente rotuladas como "Pontos Corridos".
+
+### Fixed
+- **Permissões de Súmula**: Corrigido erro de "Acesso Negado" que impedia presidentes de clube de iniciar partidas e registrar eventos nos jogos onde sua equipe estava participando, devido a uma falha na resolução de IDs de inscrição.
+- **Seleção de Jogadores**: Corrigido problema onde a lista de jogadores aparecia vazia caso o clube não tivesse escalado o elenco para a competição. Agora a UI exibe um alerta claro e link direto para a gestão do elenco.
+- **Visibilidade de Elencos**: Implementada lógica que permite presidentes visualizarem o elenco de outras equipes ("Ver Elenco"), enquanto mantêm a permissão de "Gerenciar Elenco" apenas para seus próprios clubes.
+- **Formulário de Eventos Dinâmico**: Implementado componente reativo que filtra automaticamente os jogadores com base na equipe selecionada, melhorando a precisão no registro de scouts.
 
 ## [0.6.3] - 2026-03-20
 ### Added

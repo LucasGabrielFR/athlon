@@ -6,12 +6,16 @@ import { Edit2, X, Settings, Info } from 'lucide-react';
 import { TieBreakerSorter } from './tie-breaker-sorter';
 
 export function EditCompetitionDialog({ 
-  competition 
+  competition, 
+  role
 }: { 
-  competition: any 
+  competition: any, 
+  role: string | undefined
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const isLocked = competition.status !== 'planned';
+  const isLocked = competition.status !== 'planned' && competition.status !== 'registration';
+  // Allow admins to always edit if it's the only way, but the user wants it to be editable before start.
+  // We'll also pass role here if needed.
   const [tieBreakerOrder, setTieBreakerOrder] = useState<string[]>(
     (competition.groupsConfig as any)?.tieBreakerOrder || ['pts', 'wins', 'goalDiff', 'goalsFor']
   );
@@ -66,6 +70,25 @@ export function EditCompetitionDialog({
                     className="w-full bg-slate-dark border border-azure/20 rounded-2xl px-6 py-4 text-ice focus:outline-none focus:border-azure transition-all font-bold min-h-[100px]"
                   />
                 </div>
+                <div className="bg-slate-dark/50 border border-azure/10 rounded-2xl p-6 flex items-center justify-between group hover:border-azure/30 transition-all">
+                  <div className="space-y-1">
+                    <label className="text-sm font-bold text-ice flex items-center gap-2">
+                      Exigir Validação da Organização
+                      <Info size={14} className="text-azure opacity-50" />
+                    </label>
+                    <p className="text-[10px] text-ice/40 uppercase font-black italic">Os resultados só contam após aprovação do presidente</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      name="requiresValidation" 
+                      defaultChecked={competition.requiresValidation}
+                      disabled={isLocked && role !== 'admin'}
+                      className="sr-only peer" 
+                    />
+                    <div className="w-12 h-6 bg-slate-dark border border-azure/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-azure after:border-azure after:border after:rounded-full after:h-4 after:w-5 after:transition-all peer-checked:bg-azure/20 peer-checked:border-azure"></div>
+                  </label>
+                </div>
               </div>
 
               <div className="space-y-4">
@@ -84,6 +107,8 @@ export function EditCompetitionDialog({
                     <input 
                       name="maxTeams"
                       type="number"
+                      required
+                      min={2}
                       disabled={isLocked}
                       defaultValue={competition.maxTeams}
                       className="w-full bg-slate-dark border border-azure/20 rounded-2xl px-6 py-4 text-ice focus:outline-none focus:border-azure transition-all font-bold disabled:opacity-30 italic"
@@ -94,6 +119,8 @@ export function EditCompetitionDialog({
                     <input 
                       name="minPlayersPerTeam"
                       type="number"
+                      required
+                      min={1}
                       disabled={isLocked}
                       defaultValue={competition.minPlayersPerTeam}
                       className="w-full bg-slate-dark border border-azure/20 rounded-2xl px-6 py-4 text-ice focus:outline-none focus:border-azure transition-all font-bold disabled:opacity-30 italic"
@@ -106,6 +133,8 @@ export function EditCompetitionDialog({
                     <input 
                       name="entryFee"
                       type="number"
+                      required
+                      min={0}
                       disabled={isLocked}
                       defaultValue={competition.entryFee}
                       className="w-full bg-slate-dark border border-azure/20 rounded-2xl px-6 py-4 text-ice focus:outline-none focus:border-azure transition-all font-bold disabled:opacity-30 italic"
@@ -116,6 +145,8 @@ export function EditCompetitionDialog({
                     <input 
                       name="prizePool"
                       type="number"
+                      required
+                      min={0}
                       disabled={isLocked}
                       defaultValue={competition.prizePool}
                       className="w-full bg-slate-dark border border-azure/20 rounded-2xl px-6 py-4 text-ice focus:outline-none focus:border-azure transition-all font-bold disabled:opacity-30 italic"
@@ -188,6 +219,8 @@ export function EditCompetitionDialog({
                         <input 
                           name="groupsCount"
                           type="number"
+                          required
+                          min={1}
                           disabled={isLocked}
                           defaultValue={(competition.groupsConfig as any)?.groupsCount || 2}
                           className="w-full bg-slate-dark border border-azure/20 rounded-2xl px-6 py-4 text-ice focus:outline-none focus:border-azure transition-all font-bold disabled:opacity-30 italic"
@@ -198,6 +231,8 @@ export function EditCompetitionDialog({
                         <input 
                           name="advancingPerGroup"
                           type="number"
+                          required
+                          min={1}
                           disabled={isLocked}
                           defaultValue={(competition.groupsConfig as any)?.advancingPerGroup || 2}
                           className="w-full bg-slate-dark border border-azure/20 rounded-2xl px-6 py-4 text-ice focus:outline-none focus:border-azure transition-all font-bold disabled:opacity-30 italic"
@@ -212,6 +247,8 @@ export function EditCompetitionDialog({
                       <input 
                         name="pointsPerWin"
                         type="number"
+                        required
+                        min={0}
                         disabled={isLocked}
                         defaultValue={(competition.groupsConfig as any)?.pointsPerWin ?? 3}
                         className="w-full bg-slate-dark border border-azure/20 rounded-2xl px-6 py-4 text-ice focus:outline-none focus:border-azure transition-all font-bold disabled:opacity-30 italic text-center"
@@ -222,6 +259,8 @@ export function EditCompetitionDialog({
                       <input 
                         name="pointsPerDraw"
                         type="number"
+                        required
+                        min={0}
                         disabled={isLocked}
                         defaultValue={(competition.groupsConfig as any)?.pointsPerDraw ?? 1}
                         className="w-full bg-slate-dark border border-azure/20 rounded-2xl px-6 py-4 text-ice focus:outline-none focus:border-azure transition-all font-bold disabled:opacity-30 italic text-center"
@@ -232,6 +271,8 @@ export function EditCompetitionDialog({
                       <input 
                         name="pointsPerLoss"
                         type="number"
+                        required
+                        min={0}
                         disabled={isLocked}
                         defaultValue={(competition.groupsConfig as any)?.pointsPerLoss ?? 0}
                         className="w-full bg-slate-dark border border-azure/20 rounded-2xl px-6 py-4 text-ice focus:outline-none focus:border-azure transition-all font-bold disabled:opacity-30 italic text-center"
@@ -248,6 +289,7 @@ export function EditCompetitionDialog({
                     <TieBreakerSorter 
                       initialOrder={tieBreakerOrder}
                       onChange={(newOrder) => setTieBreakerOrder(newOrder)}
+                      disabled={isLocked}
                     />
                   </div>
                 </div>

@@ -9,7 +9,8 @@ import {
 } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { notFound, redirect } from 'next/navigation';
-import { addToRosterAction } from '@/app/actions/competitions';
+import { addToRosterAction, removeFromRosterAction } from '@/app/actions/competitions';
+import { Trophy, ChevronLeft, Plus, X, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 
 export default async function RosterManagementPage({ 
@@ -115,7 +116,14 @@ export default async function RosterManagementPage({
                         <p className="text-[10px] text-emerald-400/60 font-black uppercase tracking-widest">{rosterItem.user?.nickname}</p>
                       </div>
                     </div>
-                    {/* Remove button would go here */}
+                    <form action={removeFromRosterAction}>
+                      <input type="hidden" name="registrationId" value={regId} />
+                      <input type="hidden" name="targetUserId" value={rosterItem.userId} />
+                      <button className="text-ice/20 hover:text-red-500 p-2 rounded-lg transition-colors flex items-center gap-2 group/btn">
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-0 group-hover/btn:opacity-100 transition-all transform translate-x-2 group-hover/btn:translate-x-0">Retirar</span>
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </form>
                   </div>
                 ))
               )}
