@@ -1,6 +1,6 @@
 import { auth } from '@/auth';
 import { db } from '@/db';
-import { clubs, clubMembers, clubInvitations, users, modalities, positions, playerModalities } from '@/db/schema';
+import { clubs, clubMembers, clubInvitations, users, modalities, positions, playerModalities, trophies } from '@/db/schema';
 import { eq, and, notInArray } from 'drizzle-orm';
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
@@ -13,6 +13,7 @@ import {
   leaveClubAction,
 } from '@/app/actions/clubs';
 import { ConfirmButton } from '@/components/confirm-button';
+import { Trophy as TrophyIcon } from 'lucide-react';
 
 export default async function ClubManagePage({
   params,
@@ -25,11 +26,17 @@ export default async function ClubManagePage({
   const session = await auth();
   const userId = Number((session?.user as { id?: string | number }).id);
 
-  // Load club
   const club = await db.query.clubs.findFirst({
     where: eq(clubs.id, clubId),
+    with: { modality: true }
   });
   if (!club) notFound();
+
+  // Fetch Club Trophies
+  const clubTrophies = await db.query.trophies.findMany({
+    where: eq(trophies.clubId, clubId),
+    with: { competition: true }
+  });
 
   // Check roles
   const isPresident = club.presidentId === userId;
@@ -73,7 +80,6 @@ export default async function ClubManagePage({
   }) : null;
 
   // Rule: User cannot request entry if already in a club of the same modality elsewhere
-  // Handle legacy data where club.modalityId might be null
   let effectiveModalityId = club.modalityId;
   if (!effectiveModalityId) {
     const firstMember = await db.query.clubMembers.findFirst({
@@ -89,7 +95,6 @@ export default async function ClubManagePage({
     )
   }) : null;
 
-  // ... (rest of the data fetching remains similar)
   // Pending join requests
   const joinRequests = await db
     .select({
@@ -145,7 +150,6 @@ export default async function ClubManagePage({
 
   return (
     <div className="space-y-8">
-      {/* ... (Header components) */}
       <div className="flex items-start justify-between">
         <div>
           <Link
@@ -159,10 +163,20 @@ export default async function ClubManagePage({
               {club.tag}
             </div>
             <div>
-              <h2 className="text-3xl font-bold text-ice">{club.name}</h2>
-              {club.location && (
-                <p className="text-ice/40 text-sm mt-0.5">📍 {club.location}</p>
-              )}
+              <div className="flex items-center gap-3">
+                <h2 className="text-3xl font-bold text-ice">{club.name}</h2>
+                <div className="flex items-center gap-1.5 px-3 py-1 bg-azure/10 border border-azure/20 rounded-lg shadow-[0_0_10px_rgba(0,163,255,0.1)]">
+                  <span className="text-azure text-xs">⭐</span>
+                  <span className="text-azure text-[10px] font-black uppercase tracking-widest">{club.prestigePoints} PRESTÍGIO</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 mt-1.5">
+                {club.location && (
+                  <p className="text-ice/40 text-sm">📍 {club.location}</p>
+                )}
+                <span className="h-1 w-1 rounded-full bg-ice/10"></span>
+                <p className="text-azure/60 text-[10px] font-black uppercase tracking-widest italic">{club.modality?.name}</p>
+              </div>
             </div>
           </div>
         </div>
@@ -291,6 +305,39 @@ export default async function ClubManagePage({
           </Link>
         </div>
       )}
+
+      {/* Hall de Troféus do Clube */}
+      <div className="bg-slate rounded-xl border border-azure/10 p-8 overflow-hidden relative shadow-2xl">
+        <div className="absolute -top-10 -right-10 opacity-5 rotate-12">
+           <TrophyIcon size={180} />
+        </div>
+        <h3 className="text-ice font-black text-xl mb-8 flex items-center gap-3">
+          <span className="p-2 bg-amber-500/20 rounded-2xl text-amber-500 shadow-lg shadow-amber-500/10">🏆</span>
+          Galeria de Conquistas
+        </h3>
+        
+        {clubTrophies.length === 0 ? (
+          <div className="border-2 border-dashed border-azure/5 rounded-[2rem] p-12 text-center">
+             <p className="text-ice/20 text-sm font-black uppercase tracking-widest italic">Nenhuma conquista oficial registrada</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-6">
+            {clubTrophies.map((t) => (
+              <div key={t.id} className="bg-midnight/60 border border-amber-500/10 rounded-[1.5rem] p-6 text-center group hover:border-amber-500/40 transition-all shadow-xl hover:-translate-y-1 duration-500">
+                <div className="h-14 w-14 bg-gradient-to-br from-amber-500/20 to-transparent rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-amber-500/5 group-hover:scale-110 transition-transform">
+                  <TrophyIcon size={24} className="text-amber-500" />
+                </div>
+                <p className="text-xs font-black text-amber-500 uppercase tracking-widest leading-none mb-2">
+                  {t.type === 'champion' ? 'Campeão' : 
+                   t.type === 'runner_up' ? 'Vice-Campeão' : 
+                   t.type === 'third' ? '3º Lugar' : 'Destaque'}
+                </p>
+                <p className="text-[10px] text-ice/40 uppercase font-black truncate tracking-tighter italic">{t.competition.name}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Roster grouped by modality */}
       <div className="space-y-6">

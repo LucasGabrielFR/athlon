@@ -130,3 +130,31 @@ export async function updatePlayerModalityPositionsAction(formData: FormData) {
 
   revalidatePath('/dashboard/profile');
 }
+
+export async function toggleFreeAgentStatusAction(formData: FormData) {
+  const userId = await getSessionUserId();
+  const modalityId = Number(formData.get('modalityId'));
+  // Support both boolean and string representations
+  let isFreeAgent = false;
+  const isFreeAgentField = formData.get('isFreeAgent');
+  if (isFreeAgentField === 'true' || isFreeAgentField === 'on') isFreeAgent = true;
+  
+  const freeAgentMessage = formData.get('freeAgentMessage') as string;
+
+  if (!modalityId) return;
+
+  await db.update(playerModalities)
+    .set({
+      isFreeAgent,
+      freeAgentMessage: isFreeAgent ? freeAgentMessage || null : null,
+    })
+    .where(
+      and(
+        eq(playerModalities.userId, userId),
+        eq(playerModalities.modalityId, modalityId),
+      )
+    );
+
+  revalidatePath('/dashboard/profile');
+  revalidatePath('/dashboard/players');
+}

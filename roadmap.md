@@ -66,24 +66,45 @@ Este roadmap detalha as fases de desenvolvimento do projeto Athlon, permitindo u
 
 ---
 
-## 📊 Fase 6: Estatísticas & Dashboards 🚧
+## 📊 Fase 6: Estatísticas & Dashboards ✅
 *Transformando dados em valor e visibilidade.*
 
-- [ ] **Cálculo de Performance:** Processamento das estatísticas acumuladas (Artilharia, Assists).
-- [ ] **Líderes da Competição:** Aba de estatísticas individuais dentro de cada torneio.
-- [ ] **Dashboard do Jogador 2.0:** Gráficos de evolução, histórico de partidas e cards dinâmicos.
-- [ ] **Ranking de Clubes:** Classificação global e regional por modalidade.
-- [ ] **Hall de Troféus:** Galeria visual de conquistas coletivas e individuais.
+- [x] **Estatísticas por Torneio e Global:** Processamento das estatísticas acumuladas (Artilharia, Assists).
+- [x] **Líderes da Competição:** Aba de estatísticas individuais dentro de cada torneio.
+- [x] **Dashboard do Jogador 2.0:** Gráficos de evolução, histórico de partidas e cards dinâmicos.
+- [x] **Ranking de Clubes:** Classificação global e regional por pontos de prestígio.
+- [x] **Hall de Troféus:** Galeria visual de conquistas coletivas e individuais.
 
 ---
 
-## 💎 Fase 7: Financeiro & Expansão
-*Refinamento e monetização.*
+## ⚽ Fase 7: Comunicação & Engajamento (Futebol-First) 🚧
+*Foco total em atrair usuários e criar comunidade, com especialização para FC, Pro Clubs e Futebol Real.*
 
-- [ ] **Integração de Pagamentos:** Checkout para taxas de inscrição (Pix/Stripe).
-- [ ] **Prize Pool & Escrow:** Sistema de garantia de premiações.
-- [ ] **Notificações em Tempo Real:** Alertas de jogos e notícias da organização.
-- [ ] **API Pública/Widgets:** Expandir para que organizações incorporem dados em seus sites.
+- [ ] **Infraestrutura AWS S3:** Setup do bucket escalável para armazenamento de mídia.
+- [ ] **Uploads de Identidade (Free):** Fotos de perfil, escudos de clubes e logos de organizações.
+- [ ] **Camada PRO de Mídia:** Upload de imagens em posts, artes de elenco e comprovantes de súmula restritos a assinantes PRO.
+- [ ] **Notificações Integradas:** Alertas via Web Push/Email para convites, janelas de transferência e início de jogos.
+- [ ] **Integridade por Imagem (PRO):** Anexo de screenshots ("prints") na súmula das partidas para validação.
+- [ ] **Feed Interativo:** Comentários, reações e postagens (com imagens para PRO).
+- [ ] **Mercado Proativo:** Jogadores podem marcar status como "Buscando Clube" (Free Agent).
+
+---
+
+## 💎 Fase 8: Athlon PRO & Ecossistema 🚧
+*Recursos avançados para quem quer elevar o nível, estruturado como addons premium.*
+
+- [ ] **PRO Player (Deep Analytics):** Gráficos avançados, comparativo de ratings e PDF de currículo esportivo exportável.
+- [ ] **PRO Club (Branding & Recrutamento):** Cores customizadas no perfil, filtros de mercado premium e relatórios de performance de elenco.
+- [ ] **PRO Org (White-Label):** Subdomínio próprio (ex: `liga.athlon.app`) e remoção de branding do Athlon em torneios.
+- [ ] **Portal de Patrocínios:** Banners dedicados e visibilidade para parceiros de clubes e ligas no frontend.
+
+---
+
+## 📱 Fase 9: Expansão & Mobile
+*Acessibilidade em qualquer lugar.*
+
+- [ ] **Athlon App (PWA/Mobile):** Experiência nativa para smartphones (iOS/Android).
+- [ ] **API Pública/Widgets:** Para que ligas e clubes exibam seus dados em sites externos.
 
 ---
 
@@ -94,11 +115,10 @@ Este roadmap detalha as fases de desenvolvimento do projeto Athlon, permitindo u
 | **Fase 2** | ✅ Concluída | 100% |
 | **Fase 3** | ✅ Concluída | 100% |
 | **Fase 4** | ✅ Concluída | 100% |
-| **Fase 5** | 🔄 Finalizando | 85% |
-| **Fase 6** | 🏗️ Iniciado | 10% |
-
----
-*Roadmap sujeito a ajustes conforme a evolução do projeto.*
+| **Fase 5** | ✅ Concluída | 100% |
+| **Fase 6** | ✅ Concluída | 100% |
+| **Fase 7** | 🚧 Planejando | 0% |
+| **Fase 8** | ⏳ Futuro | 0% |
 
 ---
 *Roadmap sujeito a ajustes conforme a evolução do projeto.*

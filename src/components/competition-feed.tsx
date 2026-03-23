@@ -1,8 +1,8 @@
 'use client';
 
-import { createCompetitionPostAction, togglePinPostAction } from '@/app/actions/competitions';
+import { createCompetitionPostAction, togglePinPostAction, addPostCommentAction, deletePostCommentAction, togglePostReactionAction } from '@/app/actions/competitions';
 import { useState } from 'react';
-import { Pin, Send, Megaphone, Info } from 'lucide-react';
+import { Pin, Send, Megaphone, Info, Heart, MessageCircle, Trash2 } from 'lucide-react';
 
 interface Post {
   id: number;
@@ -13,16 +13,29 @@ interface Post {
   author?: {
     name: string | null;
   };
+  comments?: {
+    id: number;
+    content: string;
+    createdAt: Date | null;
+    author: { id: number; name: string | null };
+  }[];
+  reactions?: {
+    id: number;
+    userId: number;
+    type: string;
+  }[];
 }
 
 export function CompetitionFeed({ 
   competitionId, 
   posts, 
-  isOrganizer 
+  isOrganizer,
+  currentUserId
 }: { 
   competitionId: number; 
   posts: Post[]; 
-  isOrganizer: boolean 
+  isOrganizer: boolean;
+  currentUserId: number | null; 
 }) {
   const [content, setContent] = useState('');
 
@@ -120,6 +133,72 @@ export function CompetitionFeed({
             <div className={`text-sm leading-relaxed ${post.type === 'system' ? 'text-ice/60 italic font-medium' : 'text-ice'}`}>
               {post.content}
             </div>
+
+            {/* Reactions & Comments Toggle */}
+            {post.type !== 'system' && currentUserId && (
+              <div className="mt-4 pt-3 border-t border-azure/5 flex items-center gap-4">
+                <form action={togglePostReactionAction}>
+                  <input type="hidden" name="postId" value={post.id} />
+                  <input type="hidden" name="type" value="like" />
+                  <button type="submit" className="flex items-center gap-1.5 text-xs font-semibold group transition-colors">
+                    <Heart 
+                      size={14} 
+                      className={`transition-all ${post.reactions?.some(r => r.userId === currentUserId) ? 'fill-emerald-500 text-emerald-500' : 'text-ice/40 group-hover:text-emerald-400 group-hover:fill-emerald-400/20'}`} 
+                    />
+                    <span className={post.reactions?.some(r => r.userId === currentUserId) ? 'text-emerald-500' : 'text-ice/40 group-hover:text-emerald-400'}>
+                      {post.reactions?.length || 0}
+                    </span>
+                  </button>
+                </form>
+
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-ice/40">
+                  <MessageCircle size={14} />
+                  <span>{post.comments?.length || 0}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Comments Section */}
+            {post.type !== 'system' && (
+              <div className="mt-4 space-y-3 pl-4 border-l-2 border-azure/10">
+                {post.comments?.map(comment => (
+                  <div key={comment.id} className="group relative bg-navy/50 p-3 rounded-xl border border-azure/5">
+                    <div className="flex justify-between items-start mb-1">
+                      <p className="text-[10px] font-bold text-azure">{comment.author.name}</p>
+                      
+                      {(comment.author.id === currentUserId || isOrganizer) && (
+                        <form action={deletePostCommentAction} className="opacity-0 group-hover:opacity-100 transition-opacity absolute right-2 top-2">
+                          <input type="hidden" name="commentId" value={comment.id} />
+                          <button type="submit" className="text-red-400/50 hover:text-red-400 p-1">
+                            <Trash2 size={12} />
+                          </button>
+                        </form>
+                      )}
+                    </div>
+                    <p className="text-xs text-ice/80">{comment.content}</p>
+                    <p className="text-[8px] text-ice/30 mt-1 uppercase tracking-tighter">
+                      {new Date(comment.createdAt!).toLocaleString('pt-BR')}
+                    </p>
+                  </div>
+                ))}
+
+                {currentUserId && (
+                  <form action={addPostCommentAction} className="mt-2 flex gap-2">
+                    <input type="hidden" name="postId" value={post.id} />
+                    <input 
+                      type="text" 
+                      name="content" 
+                      required
+                      placeholder="Adicionar comentário..." 
+                      className="flex-1 bg-navy border border-azure/10 rounded-lg px-3 py-2 text-xs text-ice placeholder:text-ice/20 focus:outline-none focus:border-azure/40 transition-colors"
+                    />
+                    <button type="submit" className="bg-azure/10 hover:bg-azure/20 text-azure p-2 rounded-lg transition-colors border border-azure/20">
+                      <Send size={14} />
+                    </button>
+                  </form>
+                )}
+              </div>
+            )}
           </div>
         ))}
 

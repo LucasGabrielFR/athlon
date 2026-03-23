@@ -1,10 +1,12 @@
 import { auth } from '@/auth';
 import { db } from '@/db';
-import { users, playerProfiles, playerModalities, clubMembers, clubs, modalities } from '@/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { users, playerProfiles, playerModalities, clubMembers, clubs, modalities, trophies, matchPlayerStats } from '@/db/schema';
+import { eq, and, desc } from 'drizzle-orm';
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { invitePlayerAction } from '@/app/actions/clubs';
+import { Trophy as TrophyIcon } from 'lucide-react';
+import { Trophy } from 'lucide-react';
 
 export default async function PlayerProfilePage({
   params,
@@ -54,10 +56,25 @@ export default async function PlayerProfilePage({
   const isPresident = myClubs.length > 0;
   const isOwnProfile = sessionUserId === targetId;
 
-  // Active modalities for the platform (to filter available ones)
   const allModalities = await db.query.modalities.findMany({
     where: eq(modalities.isActive, true),
   });
+
+  // Fetch Trophies
+  const playerTrophies = await db.query.trophies.findMany({
+    where: eq(trophies.userId, targetId),
+    with: { competition: true, club: true }
+  });
+
+  // Fetch Rating Evolution (Last 10 matches)
+  const statsHistory = await db.query.matchPlayerStats.findMany({
+    where: eq(matchPlayerStats.playerId, targetId),
+    orderBy: [desc(matchPlayerStats.createdAt)],
+    limit: 10,
+    with: { match: { with: { competition: true } } }
+  });
+
+  const ratingPoints = [...statsHistory].reverse().map(s => s.rating || 0);
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
@@ -199,6 +216,72 @@ export default async function PlayerProfilePage({
             
             {playerMods.length === 0 && (
               <p className="text-ice/30 text-sm text-center py-4 italic">Nenhuma modalidade cadastrada.</p>
+            )}
+          </div>
+
+          {/* Hall de Troféus */}
+          <div className="bg-slate rounded-xl border border-azure/10 p-6 overflow-hidden relative">
+            <div className="absolute -top-10 -right-10 opacity-5 rotate-12">
+              <Trophy size={160} />
+            </div>
+            <h3 className="text-ice font-bold text-lg mb-6 flex items-center gap-2">
+              <span className="p-1.5 bg-amber-500/10 rounded text-amber-500">🏆</span>
+              Hall de Troféus
+            </h3>
+            
+            {playerTrophies.length === 0 ? (
+              <div className="bg-midnight/40 border border-azure/5 rounded-xl p-8 text-center">
+                 <p className="text-ice/20 text-xs font-black uppercase tracking-[0.3em] italic">Nenhum troféu conquistado ainda</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                {playerTrophies.map((t) => (
+                  <div key={t.id} className="bg-midnight/40 border border-amber-500/20 rounded-xl p-4 text-center group hover:border-amber-500/40 transition-all">
+                    <div className="h-12 w-12 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-3 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+                      <Trophy size={20} className="text-amber-500" />
+                    </div>
+                    <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest leading-none mb-1">
+                      {t.type === 'top_scorer' ? 'Artilheiro' : 
+                       t.type === 'top_assistant' ? 'Garçom' : 
+                       t.type === 'mvp' ? 'MVP' : 
+                       t.type === 'best_goalkeeper' ? 'Paredão' : 'Campeão'}
+                    </p>
+                    <p className="text-[9px] text-ice/40 uppercase font-bold truncate">{t.competition.name}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Evolução de Desempenho */}
+          <div className="bg-slate rounded-xl border border-azure/10 p-6">
+            <h3 className="text-ice font-bold text-lg mb-6 flex items-center gap-2">
+              <span className="p-1.5 bg-emerald-500/10 rounded text-emerald-500">📈</span>
+              Evolução (Últimas Partidas)
+            </h3>
+            
+            {ratingPoints.length === 0 ? (
+              <p className="text-ice/30 text-sm text-center py-4 italic">Sem dados de partidas recentes.</p>
+            ) : (
+              <div className="space-y-6">
+                <div className="h-32 flex items-end gap-2 px-2 border-b border-azure/5 pb-2">
+                  {ratingPoints.map((rating, i) => (
+                    <div 
+                      key={i} 
+                      className="flex-1 bg-azure/20 hover:bg-azure transition-all rounded-t-md relative group/bar"
+                      style={{ height: `${rating * 10}%` }}
+                    >
+                      <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-dark border border-azure/20 text-[10px] font-black text-azure px-2 py-1 rounded opacity-0 group-hover/bar:opacity-100 transition-opacity">
+                        {rating}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex justify-between text-[10px] text-ice/20 font-black uppercase tracking-widest px-2 italic">
+                  <span>Início</span>
+                  <span>Recente</span>
+                </div>
+              </div>
             )}
           </div>
 

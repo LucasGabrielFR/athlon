@@ -7,6 +7,7 @@ const navItems = [
   { href: '/dashboard/players', label: 'Jogadores', icon: '👥' },
   { href: '/dashboard/clubs', label: 'Clubes', icon: '🛡️' },
   { href: '/dashboard/competitions', label: 'Competições', icon: '🏆' },
+  { href: '/dashboard/ranking', label: 'Ranking', icon: '⭐' },
 ];
 
 const adminItems = [

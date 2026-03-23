@@ -72,6 +72,7 @@ export const clubs = mysqlTable('clubs', {
   location: varchar('location', { length: 255 }),
   presidentId: bigint('president_id', { mode: 'number', unsigned: true }).references(() => users.id, { onDelete: 'cascade' }),
   modalityId: bigint('modality_id', { mode: 'number', unsigned: true }).references(() => modalities.id, { onDelete: 'cascade' }),
+  prestigePoints: int('prestige_points').default(0).notNull(),
   createdAt: timestamp('created_at').defaultNow(),
 });
 
@@ -258,6 +259,48 @@ export const competitionPosts = mysqlTable('competition_posts', {
 ]);
 
 // ──────────────────────────────────────────
+// COMPETITION POST COMMENTS & REACTIONS
+// ──────────────────────────────────────────
+
+export const competitionPostComments = mysqlTable('competition_post_comments', {
+  id: serial('id').primaryKey(),
+  postId: bigint('post_id', { mode: 'number', unsigned: true }).notNull(),
+  authorId: bigint('author_id', { mode: 'number', unsigned: true }).notNull(),
+  content: text('content').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+}, (table) => [
+  foreignKey({
+    name: 'comp_post_comm_post_fk',
+    columns: [table.postId],
+    foreignColumns: [competitionPosts.id],
+  }).onDelete('cascade'),
+  foreignKey({
+    name: 'comp_post_comm_auth_fk',
+    columns: [table.authorId],
+    foreignColumns: [users.id],
+  }).onDelete('cascade'),
+]);
+
+export const competitionPostReactions = mysqlTable('competition_post_reactions', {
+  id: serial('id').primaryKey(),
+  postId: bigint('post_id', { mode: 'number', unsigned: true }).notNull(),
+  userId: bigint('user_id', { mode: 'number', unsigned: true }).notNull(),
+  type: varchar('type', { length: 20 }).notNull().default('like'),
+  createdAt: timestamp('created_at').defaultNow(),
+}, (table) => [
+  foreignKey({
+    name: 'comp_post_react_post_fk',
+    columns: [table.postId],
+    foreignColumns: [competitionPosts.id],
+  }).onDelete('cascade'),
+  foreignKey({
+    name: 'comp_post_react_user_fk',
+    columns: [table.userId],
+    foreignColumns: [users.id],
+  }).onDelete('cascade'),
+]);
+
+// ──────────────────────────────────────────
 // MATCHES
 // ──────────────────────────────────────────
 
@@ -326,6 +369,73 @@ export const matchEvents = mysqlTable('match_events', {
   }).onDelete('cascade'),
 ]);
 
+// ──────────────────────────────────────────
+// MATCH PLAYER STATS (ratings & specific data)
+// ──────────────────────────────────────────
+
+export const matchPlayerStats = mysqlTable('match_player_stats', {
+  id: serial('id').primaryKey(),
+  matchId: bigint('match_id', { mode: 'number', unsigned: true }).notNull(),
+  playerId: bigint('player_id', { mode: 'number', unsigned: true }).notNull(),
+  registrationId: bigint('registration_id', { mode: 'number', unsigned: true }).notNull(),
+  
+  rating: int('rating').default(0), // 1-10
+  goals: int('goals').default(0),
+  assists: int('assists').default(0),
+  kills: int('kills').default(0),
+  deaths: int('deaths').default(0),
+  saves: int('saves').default(0), // for best goalkeeper
+  
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+}, (table) => [
+  foreignKey({
+    name: 'mps_match_id_fk',
+    columns: [table.matchId],
+    foreignColumns: [matches.id],
+  }).onDelete('cascade'),
+  foreignKey({
+    name: 'mps_player_id_fk',
+    columns: [table.playerId],
+    foreignColumns: [users.id],
+  }).onDelete('cascade'),
+  foreignKey({
+    name: 'mps_reg_id_fk',
+    columns: [table.registrationId],
+    foreignColumns: [competitionRegistrations.id],
+  }).onDelete('cascade'),
+]);
+
+// ──────────────────────────────────────────
+// TROPHIES
+// ──────────────────────────────────────────
+
+export const trophies = mysqlTable('trophies', {
+  id: serial('id').primaryKey(),
+  competitionId: bigint('competition_id', { mode: 'number', unsigned: true }).notNull(),
+  clubId: bigint('club_id', { mode: 'number', unsigned: true }), // para campeão, vice, etc.
+  userId: bigint('user_id', { mode: 'number', unsigned: true }), // para artilheiro, mvp, etc.
+  
+  type: varchar('type', { length: 50 }).notNull(), // champion, runner_up, third, top_scorer, top_assistant, mvp, best_goalkeeper
+  awardedAt: timestamp('awarded_at').defaultNow(),
+}, (table) => [
+  foreignKey({
+    name: 'trophy_comp_id_fk',
+    columns: [table.competitionId],
+    foreignColumns: [competitions.id],
+  }).onDelete('cascade'),
+  foreignKey({
+    name: 'trophy_club_id_fk',
+    columns: [table.clubId],
+    foreignColumns: [clubs.id],
+  }).onDelete('set null'),
+  foreignKey({
+    name: 'trophy_user_id_fk',
+    columns: [table.userId],
+    foreignColumns: [users.id],
+  }).onDelete('set null'),
+]);
+
 
 // ──────────────────────────────────────────
 // PLAYER PROFILES
@@ -352,6 +462,8 @@ export const playerModalities = mysqlTable('player_modalities', {
   modalityId: bigint('modality_id', { mode: 'number', unsigned: true }).notNull().references(() => modalities.id, { onDelete: 'cascade' }),
   primaryPositionId: bigint('primary_position_id', { mode: 'number', unsigned: true }).references(() => positions.id),
   secondaryPositionId: bigint('secondary_position_id', { mode: 'number', unsigned: true }).references(() => positions.id),
+  isFreeAgent: boolean('is_free_agent').notNull().default(false),
+  freeAgentMessage: varchar('free_agent_message', { length: 255 }),
   joinedAt: timestamp('joined_at').defaultNow(),
 });
 
@@ -363,6 +475,9 @@ export const usersRelations = relations(users, ({ many }) => ({
   memberships: many(clubMembers),
   invitations: many(clubInvitations),
   presidedClubs: many(clubs),
+  competitionPosts: many(competitionPosts),
+  competitionPostComments: many(competitionPostComments),
+  competitionPostReactions: many(competitionPostReactions),
 }));
 
 export const clubsRelations = relations(clubs, ({ one, many }) => ({
@@ -491,13 +606,37 @@ export const competitionRegistrationsRelations = relations(competitionRegistrati
   awayMatches: many(matches, { relationName: 'match_awayRegistration' }),
 }));
 
-export const competitionPostsRelations = relations(competitionPosts, ({ one }) => ({
+export const competitionPostsRelations = relations(competitionPosts, ({ one, many }) => ({
   competition: one(competitions, {
     fields: [competitionPosts.competitionId],
     references: [competitions.id],
   }),
   author: one(users, {
     fields: [competitionPosts.authorId],
+    references: [users.id],
+  }),
+  comments: many(competitionPostComments),
+  reactions: many(competitionPostReactions),
+}));
+
+export const competitionPostCommentsRelations = relations(competitionPostComments, ({ one }) => ({
+  post: one(competitionPosts, {
+    fields: [competitionPostComments.postId],
+    references: [competitionPosts.id],
+  }),
+  author: one(users, {
+    fields: [competitionPostComments.authorId],
+    references: [users.id],
+  }),
+}));
+
+export const competitionPostReactionsRelations = relations(competitionPostReactions, ({ one }) => ({
+  post: one(competitionPosts, {
+    fields: [competitionPostReactions.postId],
+    references: [competitionPosts.id],
+  }),
+  user: one(users, {
+    fields: [competitionPostReactions.userId],
     references: [users.id],
   }),
 }));
@@ -544,5 +683,35 @@ export const statTypesRelations = relations(statTypes, ({ one }) => ({
   modality: one(modalities, {
     fields: [statTypes.modalityId],
     references: [modalities.id],
+  }),
+}));
+
+export const matchPlayerStatsRelations = relations(matchPlayerStats, ({ one }) => ({
+  match: one(matches, {
+    fields: [matchPlayerStats.matchId],
+    references: [matches.id],
+  }),
+  player: one(users, {
+    fields: [matchPlayerStats.playerId],
+    references: [users.id],
+  }),
+  registration: one(competitionRegistrations, {
+    fields: [matchPlayerStats.registrationId],
+    references: [competitionRegistrations.id],
+  }),
+}));
+
+export const trophiesRelations = relations(trophies, ({ one }) => ({
+  competition: one(competitions, {
+    fields: [trophies.competitionId],
+    references: [competitions.id],
+  }),
+  club: one(clubs, {
+    fields: [trophies.clubId],
+    references: [clubs.id],
+  }),
+  user: one(users, {
+    fields: [trophies.userId],
+    references: [users.id],
   }),
 }));

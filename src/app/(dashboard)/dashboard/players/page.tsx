@@ -49,7 +49,7 @@ export default async function PlayersPage({
     ) as any);
   }
   if (statusFilter === 'free') {
-    conditions.push(isNull(clubMembers.id));
+    conditions.push(and(isNull(clubMembers.id), eq(playerModalities.isFreeAgent, true)) as any);
   }
   if (searchFilter) {
     conditions.push(sql`(${users.name} LIKE ${`%${searchFilter}%`} OR ${users.nickname} LIKE ${`%${searchFilter}%`})`);
@@ -103,6 +103,8 @@ export default async function PlayersPage({
         clubName: clubs.name,
         clubId: clubs.id,
         isInClub: sql<boolean>`${clubMembers.id} IS NOT NULL`,
+        isFreeAgent: playerModalities.isFreeAgent,
+        freeAgentMessage: playerModalities.freeAgentMessage,
       })
       .from(users)
       .leftJoin(playerProfiles, eq(users.id, playerProfiles.userId))
@@ -135,6 +137,8 @@ export default async function PlayersPage({
           isInClub: r.isInClub,
           clubId: r.clubId,
           clubName: r.clubName,
+          isFreeAgent: r.isFreeAgent,
+          freeAgentMessage: r.freeAgentMessage,
         });
       }
     }
@@ -215,8 +219,17 @@ export default async function PlayersPage({
                               {m.clubName || 'Desconhecido'}
                             </span>
                           </div>
+                        ) : m.isFreeAgent ? (
+                          <div className="flex flex-col items-center mt-1">
+                            <span className="text-[8px] bg-emerald-500/20 px-2 py-0.5 rounded border border-emerald-500/30 text-emerald-400 uppercase font-bold animate-pulse">
+                              Buscando Clube
+                            </span>
+                            {m.freeAgentMessage && (
+                              <p className="text-[8px] text-emerald-400/60 mt-1 max-w-[120px] truncate italic w-full text-center">"{m.freeAgentMessage}"</p>
+                            )}
+                          </div>
                         ) : (
-                          <span className="text-[8px] text-emerald-400 uppercase mt-1 font-bold">Free Agent</span>
+                          <span className="text-[8px] text-ice/40 uppercase mt-1 font-bold">Sem Clube</span>
                         )}
                       </div>
                     ))

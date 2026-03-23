@@ -4,6 +4,23 @@ Todas as mudanças notáveis para o projeto **Athlon** serão documentadas neste
 
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [Unreleased]
+
+### Added
+- **Fase 7: Feed Interativo & Mercado Proativo**
+  - **Feed de Competição Interativo:** Participantes e organizadores agora podem curtir e comentar nas postagens do feed da competição, criando maior engajamento. (Novas tabelas `competitionPostComments` e `competitionPostReactions`).
+  - **Mercado de Jogadores Proativo:** Jogadores agora podem definir seu status como "Free Agent" (Buscando Clube) individualmente por modalidade, incluindo uma mensagem personalizada de apresentação.
+  - **Busca de Agentes Livres:** A página de mercado de jogadores agora destaca visualmente os atletas que estão ativamente buscando um clube, facilitando o recrutamento por parte dos presidentes.
+
+- **Fase 6: Estátisticas & Dashboards**
+  - Sistema de Prestígio para clubes baseado em resultados de partidas (+10 pts por vitória, +5 pts por empate).
+  - Ranking global de clubes por pontos de prestígio acessível na barra lateral.
+  - Coleta de estatísticas individuais (Gols, Assistências, Rating, Defesas) por partida na validação da súmula.
+  - Líderes de estatísticas por competição exibidos em nova aba "Estatísticas" (Artilheiros, Garçons, MVP, Goleiros).
+  - Galeria de Troféus (Hall of Trophies) para Jogadores e Clubes com visualização premium.
+  - Gráfico de evolução de Rating nos perfis dos jogadores exibindo o desempenho das últimas 10 partidas.
+  - Novas tabelas `matchPlayerStats` e `trophies` no banco de dados.
+
 ## [0.6.4] - 2026-03-21
 ### Added
 - **Configuração Avançada de Classificação**: Agora é possível definir pontuação customizada para Vitória, Empate e Derrota tanto na criação quanto na edição.

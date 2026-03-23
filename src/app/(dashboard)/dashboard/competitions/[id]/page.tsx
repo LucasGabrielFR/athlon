@@ -1,6 +1,6 @@
 import { auth } from '@/auth';
 import { db } from '@/db';
-import { competitions, competitionRegistrations, clubs, users, competitionPosts, matches } from '@/db/schema';
+import { competitions, competitionRegistrations, clubs, users, competitionPosts, matches, matchPlayerStats } from '@/db/schema';
 import { eq, and, desc, inArray } from 'drizzle-orm';
 import { notFound } from 'next/navigation';
 import { registerClubAction, approveRegistrationAction, deleteCompetitionAction, deactivateCompetitionAction, generateMatchesAction, validateMatchAction } from '@/app/actions/competitions';
@@ -12,7 +12,8 @@ import { ManualStatusToggles } from '@/components/manual-status-toggles';
 import { StartTournamentButton } from '@/components/start-tournament-button';
 import { StandingsTable, type TeamStanding } from '@/components/standings-table';
 import { KnockoutBracket } from '@/components/knockout-bracket';
-import { LayoutDashboard, MessageSquare, Settings, ShieldAlert, Users, ChevronRight, Trophy, Calendar, ListOrdered, CheckCheck } from 'lucide-react';
+import { CompetitionStatistics } from '@/components/competition-statistics';
+import { LayoutDashboard, MessageSquare, Settings, ShieldAlert, Users, ChevronRight, Trophy, Calendar, ListOrdered, CheckCheck, BarChart3 } from 'lucide-react';
 
 export default async function CompetitionDetailPage({ 
   params,
@@ -36,7 +37,14 @@ export default async function CompetitionDetailPage({
       organization: true,
       organizer: true,
       posts: {
-        with: { author: true },
+        with: { 
+          author: true,
+          comments: {
+            with: { author: true },
+            orderBy: (c, { asc }) => [asc(c.createdAt)]
+          },
+          reactions: true
+        },
         orderBy: [desc(competitionPosts.createdAt)]
       },
       matches: {
@@ -149,6 +157,74 @@ export default async function CompetitionDetailPage({
     groups = Array.from(new Set(allStandings.map(s => s.groupId))).sort() as string[];
   }
 
+  // --- Phase 6: Statistics Calculation ---
+  const matchIds = comp.matches.map(m => m.id);
+  const allStats = matchIds.length > 0 ? await db.query.matchPlayerStats.findMany({
+    where: inArray(matchPlayerStats.matchId, matchIds),
+    with: {
+      player: true,
+      registration: { with: { club: true } }
+    }
+  }) : [];
+
+  const playerAggregation = new Map<number, { 
+    name: string, 
+    tag: string, 
+    clubName: string, 
+    goals: number, 
+    assists: number, 
+    saves: number, 
+    ratings: number[],
+    count: number 
+  }>();
+
+  allStats.forEach(s => {
+    const existing = playerAggregation.get(s.playerId) || { 
+      name: s.player.name || 'Unknown', 
+      tag: (s.registration as any)?.club?.tag || '?', 
+      clubName: (s.registration as any)?.club?.name || '?',
+      goals: 0, assists: 0, saves: 0, ratings: [] as number[], count: 0 
+    };
+    
+    existing.goals += s.goals || 0;
+    existing.assists += s.assists || 0;
+    existing.saves += s.saves || 0;
+    if (s.rating) existing.ratings.push(s.rating);
+    existing.count++;
+    
+    playerAggregation.set(s.playerId, existing);
+  });
+
+  const topScorers = Array.from(playerAggregation.entries())
+    .map(([id, data]) => ({ id, name: data.name, tag: data.tag, clubName: data.clubName, value: data.goals }))
+    .filter(p => p.value > 0)
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 5);
+
+  const topAssisters = Array.from(playerAggregation.entries())
+    .map(([id, data]) => ({ id, name: data.name, tag: data.tag, clubName: data.clubName, value: data.assists }))
+    .filter(p => p.value > 0)
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 5);
+
+  const topMVPs = Array.from(playerAggregation.entries())
+    .map(([id, data]) => ({ 
+      id, 
+      name: data.name, 
+      tag: data.tag, 
+      clubName: data.clubName, 
+      value: data.ratings.length > 0 ? (data.ratings.reduce((a, b) => a + b, 0) / data.ratings.length) : 0 
+    }))
+    .filter(p => p.value > 0)
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 5);
+
+  const topGoalkeepers = Array.from(playerAggregation.entries())
+    .map(([id, data]) => ({ id, name: data.name, tag: data.tag, clubName: data.clubName, value: data.saves }))
+    .filter(p => p.value > 0)
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 5);
+
   return (
     <div className="space-y-8 pb-20">
       {/* Header Banner */}
@@ -234,6 +310,17 @@ export default async function CompetitionDetailPage({
           >
             <Trophy size={14} />
             Mata-Mata
+          </Link>
+        )}
+        {comp.status === 'active' && (
+          <Link 
+            href={`?tab=stats`}
+            className={`flex items-center gap-2 px-6 py-3 rounded-[1rem] transition-all font-black text-[10px] uppercase tracking-widest ${
+              tab === 'stats' ? 'bg-azure text-slate shadow-lg shadow-azure/20' : 'text-ice/40 hover:text-ice hover:bg-slate-dark'
+            }`}
+          >
+            <BarChart3 size={14} />
+            Estatísticas
           </Link>
         )}
         {isOrganizer && (
@@ -365,6 +452,7 @@ export default async function CompetitionDetailPage({
                 competitionId={compId} 
                 posts={comp.posts as any} 
                 isOrganizer={isOrganizer}
+                currentUserId={userId}
               />
             </div>
           )}
@@ -490,6 +578,18 @@ export default async function CompetitionDetailPage({
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {tab === 'stats' && (
+            <div className="space-y-8">
+              <h3 className="text-[10px] font-black text-azure uppercase tracking-[0.4em] px-2 italic text-center">Líderes da Competição</h3>
+              <CompetitionStatistics 
+                topScorers={topScorers}
+                topAssisters={topAssisters}
+                topMVPs={topMVPs}
+                topGoalkeepers={topGoalkeepers}
+              />
             </div>
           )}
 

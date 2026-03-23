@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { setActiveModalityAction, removePlayerModalityAction, updatePlayerModalityPositionsAction } from '@/app/actions/profile';
+import { setActiveModalityAction, removePlayerModalityAction, updatePlayerModalityPositionsAction, toggleFreeAgentStatusAction } from '@/app/actions/profile';
 
 interface Position {
   id: number;
@@ -21,6 +21,8 @@ interface LinkedItem {
   secondaryPositionId: number | null;
   primaryPosition: Position | null;
   secondaryPosition: Position | null;
+  isFreeAgent: boolean;
+  freeAgentMessage: string | null;
 }
 
 export default function LinkedModalityItem({ item, isActive }: { item: LinkedItem, isActive: boolean }) {
@@ -88,6 +90,49 @@ export default function LinkedModalityItem({ item, isActive }: { item: LinkedIte
             Salvar Posições
           </button>
         </form>
+
+        {/* Free Agent / Buscando Clube Edit */}
+        <div className="mt-4 pt-4 border-t border-azure/20">
+          <form action={async (fd) => {
+            await toggleFreeAgentStatusAction(fd);
+            setIsEditing(false);
+          }} className="space-y-4">
+            <input type="hidden" name="modalityId" value={item.modalityId} />
+            
+            <div className="flex items-center gap-3">
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  name="isFreeAgent" 
+                  value="true"
+                  defaultChecked={item.isFreeAgent}
+                  className="sr-only peer" 
+                />
+                <div className="w-11 h-6 bg-navy peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-ice after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all border border-azure/20 peer-checked:bg-azure"></div>
+                <span className="ml-3 text-sm font-bold text-ice">Buscando Clube (Free Agent)</span>
+              </label>
+            </div>
+
+            <div>
+              <label className="block text-[10px] text-ice/40 mb-1 uppercase tracking-tighter">Mensagem (Opcional)</label>
+              <textarea
+                name="freeAgentMessage"
+                rows={2}
+                defaultValue={item.freeAgentMessage ?? ''}
+                placeholder="Ex: Main Mid, procuro time competitivo..."
+                className="w-full bg-navy border border-azure/20 rounded-lg px-4 py-2 text-ice placeholder:text-ice/30 focus:outline-none focus:border-azure transition-colors text-sm resize-none"
+              />
+              <p className="text-[10px] text-azure/40 mt-1">Essa mensagem aparecerá no Mercado de Jogadores.</p>
+            </div>
+
+            <button
+              type="submit"
+              className="w-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold px-4 py-2 rounded-lg hover:bg-emerald-500 hover:text-navy transition-colors text-sm"
+            >
+              Atualizar Status no Mercado
+            </button>
+          </form>
+        </div>
       </div>
     );
   }
@@ -115,6 +160,12 @@ export default function LinkedModalityItem({ item, isActive }: { item: LinkedIte
             )}
             {!item.primaryPosition && !item.secondaryPosition && (
               <span className="text-[10px] text-ice/20 italic">Sem posições definidas</span>
+            )}
+            
+            {item.isFreeAgent && (
+              <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/30 font-bold ml-2 uppercase animate-pulse">
+                Buscando Clube
+              </span>
             )}
           </div>
           {isActive && (
