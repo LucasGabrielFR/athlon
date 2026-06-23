@@ -3,6 +3,7 @@
 import { createOrganizationAction } from '@/app/actions/organizations';
 import Link from 'next/link';
 import { useState } from 'react';
+import { ImageUpload } from '@/components/ui/image-upload';
 
 export default function NewOrganizationPage() {
   const [loading, setLoading] = useState(false);
@@ -62,13 +63,12 @@ export default function NewOrganizationPage() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] text-azure/50 uppercase tracking-[0.2em] font-black px-1" htmlFor="logoUrl">URL do Logo (Opcional)</label>
-                <input 
-                  id="logoUrl"
-                  name="logoUrl"
-                  type="url"
-                  placeholder="https://..."
-                  className="w-full bg-slate-dark border border-azure/20 rounded-xl px-4 py-3.5 text-ice placeholder:text-ice/10 focus:outline-none focus:border-azure focus:ring-1 focus:ring-azure/30 transition-all font-medium text-sm"
+                <label className="text-[10px] text-azure/50 uppercase tracking-[0.2em] font-black px-1" htmlFor="logoUrl">Escudo da Organização (Opcional)</label>
+                <ImageUpload 
+                  name="logoUrl" 
+                  label="Enviar escudo" 
+                  className="h-28 rounded-xl w-full" 
+                  folder="organizations"
                 />
               </div>
             </div>

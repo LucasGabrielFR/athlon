@@ -4,6 +4,7 @@ import { db } from '@/db';
 import { playerProfiles, playerModalities, users } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { auth } from '@/auth';
+import { deleteFile } from '@/lib/storage';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 
@@ -27,6 +28,16 @@ export async function updateProfileAction(formData: FormData) {
   });
 
   if (existing) {
+    // Delete old avatar if it was changed
+    if (
+      existing.avatarUrl &&
+      existing.avatarUrl !== avatarUrl &&
+      existing.avatarUrl.includes(process.env.R2_PUBLIC_URL!)
+    ) {
+      const fileKey = existing.avatarUrl.replace(`${process.env.R2_PUBLIC_URL}/`, '');
+      await deleteFile(fileKey).catch((e) => console.error("Failed to delete old avatar", e));
+    }
+
     await db.update(playerProfiles)
       .set({ bio: bio || null, avatarUrl: avatarUrl || null })
       .where(eq(playerProfiles.userId, userId));

@@ -13,5 +13,21 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
 
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: athlon-app
+    restart: always
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mysql
+    env_file:
+      - .env
+    environment:
+      # Sobrescreve a URL do banco para conectar ao container mysql em vez do localhost
+      - DATABASE_URL=mysql://user:password@mysql:3306/athlon_db
+
 volumes:
   mysql_data:

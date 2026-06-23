@@ -42,6 +42,21 @@ async function seed() {
 
   console.log(`📊 Found ${selectedMods.length} modalities to use.`);
 
+  console.log('👑 Creating Superadmin...');
+  const adminEmail = 'admin@athlon.com';
+  const existingAdmin = await db.query.users.findFirst({ where: eq(users.email, adminEmail) });
+  if (existingAdmin) {
+    await db.update(users).set({ role: 'admin' }).where(eq(users.id, existingAdmin.id));
+  } else {
+    await db.insert(users).values({
+      name: 'Super Admin',
+      email: adminEmail,
+      passwordHash,
+      role: 'admin',
+      nickname: 'superadmin',
+    });
+  }
+
   for (let i = 0; i < CLUB_NAMES.length; i++) {
     const clubInfo = CLUB_NAMES[i];
     const mod = selectedMods[i % selectedMods.length];

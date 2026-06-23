@@ -4,8 +4,13 @@ Todas as mudanças notáveis para o projeto **Athlon** serão documentadas neste
 
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
-## [Unreleased]
+## [0.6.6] - 2026-06-23
+### Added
+- **Upload Direto com Cloudflare R2**: As imagens (como Avatares e Escudos) agora são enviadas diretamente do navegador para o Cloudflare R2 usando URLs Pre-assinadas (Presigned URLs), economizando processamento e banda do servidor.
+- **Organização por Pastas no Bucket**: Os arquivos são automaticamente salvos em pastas semânticas (`/players`, `/clubs`, `/organizations`, `/competitions`) no Cloudflare R2, mantendo o storage organizado.
+- **Garbage Collection (Limpeza Inteligente)**: O sistema detecta automaticamente se uma imagem de perfil ou de clube foi alterada durante um "update", apagando o arquivo antigo permanentemente do bucket para economizar armazenamento.
 
+## [0.6.5] - 2026-03-23
 ### Added
 - **Fase 7: Feed Interativo & Mercado Proativo**
   - **Feed de Competição Interativo:** Participantes e organizadores agora podem curtir e comentar nas postagens do feed da competição, criando maior engajamento. (Novas tabelas `competitionPostComments` e `competitionPostReactions`).

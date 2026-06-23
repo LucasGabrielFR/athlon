@@ -34,6 +34,7 @@ O projeto utiliza uma stack moderna focada em performance e tipagem rigorosa:
 - **Framework:** [Next.js 15](https://nextjs.org/) (App Router)
 - **Banco de Dados:** [MySQL 8.0](https://www.mysql.com/) via Docker
 - **ORM:** [Drizzle ORM](https://orm.drizzle.team/)
+- **Storage:** [Cloudflare R2](https://www.cloudflare.com/developer-platform/r2/) (Uploads via Presigned URLs)
 - **Estilização:** [Tailwind CSS 4](https://tailwindcss.com/) com Design System customizado.
 - **Ambiente:** Docker Compose
 

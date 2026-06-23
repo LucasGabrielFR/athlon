@@ -6,6 +6,7 @@ import { eq } from 'drizzle-orm';
 import { updateProfileAction } from '@/app/actions/profile';
 import AddModalityForm from './AddModalityForm';
 import LinkedModalityItem from './LinkedModalityItem';
+import { ImageUpload } from '@/components/ui/image-upload';
 
 export default async function ProfilePage() {
   const session = await auth();
@@ -97,13 +98,13 @@ export default async function ProfilePage() {
                 />
               </div>
               <div>
-                <label className="block text-xs text-ice/60 mb-1 uppercase tracking-wider">URL do Avatar</label>
-                <input
-                  type="url"
-                  name="avatarUrl"
-                  defaultValue={profile?.avatarUrl ?? ''}
-                  placeholder="https://..."
-                  className="w-full bg-navy border border-azure/20 rounded-lg px-4 py-3 text-ice placeholder:text-ice/30 focus:outline-none focus:border-azure transition-colors"
+                <label className="block text-xs text-ice/60 mb-1 uppercase tracking-wider">Foto de Perfil</label>
+                <ImageUpload 
+                  name="avatarUrl" 
+                  defaultImage={profile?.avatarUrl} 
+                  label="Enviar foto" 
+                  className="h-32 rounded-lg w-full" 
+                  folder="players"
                 />
               </div>
               <button

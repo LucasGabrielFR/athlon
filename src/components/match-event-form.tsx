@@ -51,7 +51,7 @@ export function MatchEventForm({
         </p>
       </div>
 
-      <form action={recordMatchEventAction} className="space-y-6">
+      <form action={async (formData) => { await recordMatchEventAction(formData); }} className="space-y-6">
         <input type="hidden" name="matchId" value={matchId} />
         
         <div className="space-y-2">

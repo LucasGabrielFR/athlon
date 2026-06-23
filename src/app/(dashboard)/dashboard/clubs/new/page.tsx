@@ -4,6 +4,7 @@ import { createClubAction } from '@/app/actions/clubs';
 import { auth } from '@/auth';
 import { clubMembers } from '@/db/schema';
 import { eq, and, notInArray } from 'drizzle-orm';
+import { ImageUpload } from '@/components/ui/image-upload';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
@@ -135,13 +136,13 @@ export default async function NewClubPage({
         {/* Logo URL */}
         <div>
           <label className="block text-ice/60 text-sm font-medium mb-2">
-            URL do Escudo <span className="text-ice/30 font-normal">(opcional)</span>
+            Escudo do Clube <span className="text-ice/30 font-normal">(opcional)</span>
           </label>
-          <input
-            name="logoUrl"
-            type="url"
-            placeholder="https://..."
-            className="w-full bg-slate border border-azure/20 text-ice rounded-lg px-4 py-3 placeholder-ice/20 focus:outline-none focus:border-azure/60 transition-colors"
+          <ImageUpload 
+            name="logoUrl" 
+            label="Enviar escudo" 
+            className="w-32 h-32 mx-auto rounded-full" 
+            folder="clubs"
           />
         </div>
 
