@@ -7,10 +7,14 @@ import { TieBreakerSorter } from './tie-breaker-sorter';
 
 export function EditCompetitionDialog({ 
   competition, 
-  role
+  role,
+  planTier = 'free',
+  existingScreenshotRequirements = []
 }: { 
-  competition: any, 
-  role: string | undefined
+  competition: any;
+  role: string | undefined;
+  planTier?: string;
+  existingScreenshotRequirements?: string[];
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const isLocked = competition.status !== 'planned' && competition.status !== 'registration';
@@ -19,12 +23,30 @@ export function EditCompetitionDialog({
   const [tieBreakerOrder, setTieBreakerOrder] = useState<string[]>(
     (competition.groupsConfig as any)?.tieBreakerOrder || ['pts', 'wins', 'goalDiff', 'goalsFor']
   );
+  const [requiresImageVerification, setRequiresImageVerification] = useState(competition.requiresImageVerification || false);
+  const [resultPolicy, setResultPolicy] = useState(competition.resultSubmissionPolicy || 'manager_mutual');
+
+  const getPolicyDescription = (policy: string) => {
+    switch (policy) {
+      case 'manager_mutual':
+        return 'Qualquer manager envia o resultado. O adversário DEVE confirmar. Em caso de divergência, ele pode contestar para análise do Admin.';
+      case 'manager_single':
+        return 'Qualquer manager pode enviar o resultado e ele já é APROVADO AUTOMATICAMENTE. Ideal para torneios rápidos de alta confiança.';
+      case 'admin_only':
+        return 'Apenas a administração do torneio pode preencher e validar resultados. Os times não possuem acesso ao envio de súmulas.';
+      default:
+        return '';
+    }
+  };
+
+  const isPro = planTier === 'pro' || role === 'admin';
 
   return (
     <>
       <button 
+        type="button"
         onClick={() => setIsOpen(true)}
-        className="flex items-center gap-2 bg-slate-dark hover:bg-slate border border-azure/20 text-ice/60 hover:text-azure px-4 py-2 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest"
+        className="w-fit flex items-center justify-center gap-2 px-6 py-2 rounded-xl border border-azure/20 text-[10px] font-black text-ice uppercase tracking-[0.2em] hover:bg-azure/5 hover:border-azure/50 transition-all group italic"
       >
         <Edit2 size={12} />
         Editar Informações
@@ -70,24 +92,131 @@ export function EditCompetitionDialog({
                     className="w-full bg-slate-dark border border-azure/20 rounded-2xl px-6 py-4 text-ice focus:outline-none focus:border-azure transition-all font-bold min-h-[100px]"
                   />
                 </div>
-                <div className="bg-slate-dark/50 border border-azure/10 rounded-2xl p-6 flex items-center justify-between group hover:border-azure/30 transition-all">
-                  <div className="space-y-1">
-                    <label className="text-sm font-bold text-ice flex items-center gap-2">
-                      Exigir Validação da Organização
-                      <Info size={14} className="text-azure opacity-50" />
+                <div className="space-y-4">
+                  <div className="bg-slate-dark/50 border border-azure/10 rounded-2xl p-6 flex items-center justify-between group hover:border-azure/30 transition-all">
+                    <div className="space-y-1">
+                      <label className="text-sm font-bold text-ice flex items-center gap-2">
+                        Exigir Validação da Organização
+                        <Info size={14} className="text-azure opacity-50" />
+                      </label>
+                      <p className="text-[10px] text-ice/40 uppercase font-black italic">Os resultados só contam após aprovação do presidente</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="hidden" name="requiresValidation_present" value="1" />
+                      <input 
+                        type="checkbox" 
+                        name="requiresValidation" 
+                        defaultChecked={competition.requiresValidation}
+                        disabled={isLocked && role !== 'admin'}
+                        className="sr-only peer" 
+                      />
+                      <div className="w-12 h-6 bg-slate-dark border border-azure/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-azure after:border-azure after:border after:rounded-full after:h-4 after:w-5 after:transition-all peer-checked:bg-azure/20 peer-checked:border-azure"></div>
                     </label>
-                    <p className="text-[10px] text-ice/40 uppercase font-black italic">Os resultados só contam após aprovação do presidente</p>
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      name="requiresValidation" 
-                      defaultChecked={competition.requiresValidation}
-                      disabled={isLocked && role !== 'admin'}
-                      className="sr-only peer" 
-                    />
-                    <div className="w-12 h-6 bg-slate-dark border border-azure/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-azure after:border-azure after:border after:rounded-full after:h-4 after:w-5 after:transition-all peer-checked:bg-azure/20 peer-checked:border-azure"></div>
-                  </label>
+
+                  <div className="bg-slate-dark/50 border border-azure/10 rounded-2xl p-6 space-y-6 group hover:border-azure/30 transition-all">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] text-azure font-black uppercase tracking-[0.2em] px-1 italic flex items-center gap-2">
+                        Configuração de Súmulas Inteligentes
+                      </label>
+                      <p className="text-[10px] text-ice/40 uppercase font-black italic">Defina como os managers reportam resultados e provas visuais</p>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-[10px] font-black text-ice/30 uppercase mb-2 block px-1">Política de Envio</label>
+                        <select 
+                          name="resultSubmissionPolicy"
+                          value={resultPolicy}
+                          onChange={(e) => setResultPolicy(e.target.value)}
+                          disabled={isLocked && role !== 'admin'}
+                          className="w-full bg-slate-dark border border-azure/20 rounded-2xl px-6 py-4 text-ice focus:outline-none focus:border-azure transition-all font-bold appearance-none disabled:opacity-50"
+                        >
+                          <option value="manager_mutual" className="bg-slate-dark text-ice font-bold py-2">Managers enviam e validam (Acordo Mútuo)</option>
+                          <option value="manager_single" className="bg-slate-dark text-ice font-bold py-2">Apenas 1 Manager envia e já aprova</option>
+                          <option value="admin_only" className="bg-slate-dark text-ice font-bold py-2">Somente a Administração lança resultados</option>
+                        </select>
+                        <div className="bg-azure/5 border-l-2 border-azure p-3 rounded-r-xl mt-2 animate-in fade-in slide-in-from-top-2">
+                          <p className="text-xs text-ice/80 leading-relaxed font-medium">
+                            {getPolicyDescription(resultPolicy)}
+                          </p>
+                        </div>
+                        <p className="text-[10px] text-ice/30 font-bold uppercase tracking-widest pl-1 mt-2">O administrador sempre poderá sobrepor os resultados independentemente da regra.</p>
+                      </div>
+
+                      <div className={`flex items-center justify-between border-t border-azure/10 pt-4 ${!isPro ? 'opacity-60' : ''}`}>
+                        <div className="space-y-1">
+                          <label className="text-sm font-bold text-ice flex items-center gap-2">
+                            Estatísticas Avançadas (PRO)
+                            <Info size={14} className={isPro ? "text-amber-400" : "text-azure opacity-50"} />
+                          </label>
+                          <p className="text-[10px] text-ice/40 uppercase font-black italic">Coletar rating, assistências e defesas individuais</p>
+                          {!isPro && <p className="text-[9px] text-amber-500 uppercase tracking-widest italic font-bold">Requer assinatura PRO</p>}
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input type="hidden" name="isProStatsEnabled_present" value="1" />
+                          <input 
+                            type="checkbox" 
+                            name="isProStatsEnabled" 
+                            defaultChecked={isPro && competition.isProStatsEnabled}
+                            disabled={!isPro || (isLocked && role !== 'admin')}
+                            className="sr-only peer" 
+                          />
+                          <div className={`w-12 h-6 bg-slate-dark border border-azure/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-azure after:border-azure after:border after:rounded-full after:h-4 after:w-5 after:transition-all ${isPro ? 'peer-checked:bg-azure/20 peer-checked:border-azure' : ''}`}></div>
+                        </label>
+                      </div>
+
+                      <div className={`flex items-center justify-between border-t border-azure/10 pt-4 ${!isPro ? 'opacity-60' : ''}`}>
+                        <div className="space-y-1">
+                          <label className="text-sm font-bold text-ice flex items-center gap-2">
+                            Exigir Provas Visuais (Integridade PRO)
+                            <Info size={14} className="text-azure opacity-50" />
+                          </label>
+                          <p className="text-[10px] text-ice/40 uppercase font-black italic">Obriga envio de prints/fotos para validar as súmulas.</p>
+                          {!isPro && <p className="text-[9px] text-amber-500 uppercase tracking-widest italic font-bold">Requer assinatura PRO</p>}
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input type="hidden" name="requiresImageVerification_present" value="1" />
+                          <input 
+                            type="checkbox" 
+                            name="requiresImageVerification" 
+                            disabled={!isPro || (isLocked && role !== 'admin')}
+                            checked={isPro && requiresImageVerification}
+                            onChange={(e) => setRequiresImageVerification(e.target.checked)}
+                            className="sr-only peer" 
+                          />
+                          <div className={`w-12 h-6 bg-slate-dark border border-azure/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-azure after:border-azure after:border after:rounded-full after:h-4 after:w-5 after:transition-all ${isPro ? 'peer-checked:bg-azure/20 peer-checked:border-azure' : ''}`}></div>
+                        </label>
+                      </div>
+
+                      {requiresImageVerification && isPro && (
+                        <div className="pt-4 border-t border-azure/10 animate-in fade-in slide-in-from-top-4 duration-300">
+                          <h4 className="text-[10px] text-azure/50 uppercase tracking-[0.2em] font-black mb-4 px-1">Selecione as provas exigidas</h4>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {[
+                              "Placar Final (Resultado)", 
+                              "Notas (Rating) do Time Casa", 
+                              "Notas (Rating) do Time Fora", 
+                              "Estatísticas de Gols/Assistências", 
+                              "Print do Lobby/Saguão"
+                            ].map(req => (
+                              <label key={req} className="flex items-center gap-3 bg-slate-dark p-3 rounded-xl border border-azure/10 cursor-pointer hover:border-azure/30 transition-colors">
+                                <input 
+                                  type="checkbox" 
+                                  name="screenshotRequirements" 
+                                  value={req} 
+                                  defaultChecked={existingScreenshotRequirements.includes(req)}
+                                  disabled={isLocked && role !== 'admin'}
+                                  className="w-4 h-4 rounded border-slate-600 text-azure focus:ring-azure focus:ring-offset-slate-dark bg-slate-800 disabled:opacity-50" 
+                                />
+                                <span className="text-sm font-bold text-ice">{req}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
 

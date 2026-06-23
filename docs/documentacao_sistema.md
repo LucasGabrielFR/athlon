@@ -12,8 +12,9 @@
 3. [Stack Tecnológica](#3-stack-tecnológica)
 4. [Banco de Dados](#4-banco-de-dados)
 5. [Estrutura de Perfis (Roles)](#5-estrutura-de-perfis-roles)
-6. [Dados de Teste e Ambiente](#6-dados-de-teste-e-ambiente)
-7. [Identidade Visual](#7-identidade-visual)
+6. [Motor de Súmulas Inteligentes](#6-motor-de-súmulas-inteligentes-match-integrity)
+7. [Dados de Teste e Ambiente](#7-dados-de-teste-e-ambiente)
+8. [Identidade Visual](#8-identidade-visual)
 
 ---
 
@@ -86,6 +87,7 @@ athlon/
 | **Identidade** | `users`, `roles`, `user_roles` | Core de conta e controle de acesso (RBAC). |
 | **Flexibilidade** | `modalities`, `positions`, `stat_types` | (Futebol, CS2), posições e o que medir (Gols, Kills). |
 | **Competitiva** | `clubs`, `competitions`, `matches`, `match_events` | Organizações, competições (regras em JSON), partidas e atômicos de jogo. |
+| **Integridade (PRO)** | `competition_screenshot_requirements`, `match_screenshots` | Motor de Súmulas Inteligentes. Mapeia exigências de imagens configuradas pela org e armazena os uploads enviados pelos clubes para validação (Acordo Mútuo ou Admin). |
 
 ---
 
@@ -100,16 +102,34 @@ athlon/
 
 ---
 
-## 6. Dados de Teste e Ambiente
+## 6. Motor de Súmulas Inteligentes (Match Integrity)
+
+O fluxo de **Súmulas Inteligentes** é o coração da integridade esportiva da plataforma.
+Ele substitui resultados baseados apenas em confiança por um sistema auditável.
+
+### 6.1 Como funciona:
+1. **Configuração da Competição**: O organizador (Presidente de Org) escolhe a política de envio (`resultSubmissionPolicy`):
+   - `admin_only`: Só a organização insere resultados.
+   - `manager_single`: Um manager submete e o resultado vai pra avaliação da org.
+   - `manager_mutual` (Acordo Mútuo): Um manager submete e o adversário precisa analisar as provas e "Aceitar" ou "Contestar".
+2. **Requisitos Fotográficos**: O organizador marca quais "Prints" são obrigatórios (ex: Print do Placar Final, Print do Lobby). O sistema não deixa a súmula passar sem essas imagens.
+3. **Fluxo na Partida**: 
+   - A partida possui uma máquina de estados (`submissionStatus`): `pending`, `submitted_by_home`, `submitted_by_away`, `disputed`, `validated`.
+   - As imagens são enviadas diretamente para o **Cloudflare R2**.
+   - Em caso de Contestação (`disputed`), a validação é travada para intervenção do Admin.
+
+---
+
+## 7. Dados de Teste e Ambiente
 
 **Senha padrão para todos os usuários de teste:** `athlon123`
 
-### 6.1 Superadmin (Acesso Total)
+### 7.1 Superadmin (Acesso Total)
 - **Login:** `admin@athlon.com`
 - **Senha:** `athlon123`
 - **Role:** `admin`
 
-### 6.2 Clubes de Teste e Presidentes
+### 7.2 Clubes de Teste e Presidentes
 | Clube | Tag | Modalidade | Presidente (Login) |
 | :--- | :--- | :--- | :--- |
 | **Alpha Esports** | ALP | FIFA 26 - Pro Clubs | `president1@athlon.com` |
@@ -123,7 +143,7 @@ athlon/
 | **India Kings** | IND | FIFA 26 - Pro Clubs | `president9@athlon.com` |
 | **Juliet Vikings** | JUL | FIFA 26 - Pro Clubs | `president10@athlon.com` |
 
-### 6.3 Jogadores
+### 7.3 Jogadores
 Cada clube possui **10 membros** (1 Presidente + 9 Jogadores). Todos foram vinculados à modalidade do seu clube com posições definidas automaticamente.
 *Exemplos:*
 - `player_c1_p1@athlon.com` (Alpha Esports)
@@ -134,7 +154,7 @@ Cada clube possui **10 membros** (1 Presidente + 9 Jogadores). Todos foram vincu
 
 ---
 
-## 7. Identidade Visual
+## 8. Identidade Visual
 
 Conceito **"O Vértice da Vitória"**: Letra 'A' estilizada unindo o esporte Real e Digital.
 

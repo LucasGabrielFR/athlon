@@ -3,6 +3,7 @@ import { db } from '@/db';
 import { modalities, organizations } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { createCompetitionAction } from '@/app/actions/competitions';
+import { users } from '@/db/schema';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { NewCompetitionForm } from './new-competition-form';
@@ -20,6 +21,10 @@ export default async function NewCompetitionPage({ searchParams }: { searchParam
   if (userRole !== 'admin' && userRole !== 'org_president') {
     redirect('/dashboard?error=unauthorized');
   }
+
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+  });
 
   const allModalities = await db.query.modalities.findMany({
     where: eq(modalities.isActive, true),
@@ -52,6 +57,8 @@ export default async function NewCompetitionPage({ searchParams }: { searchParam
         allModalities={allModalities}
         myOrganizations={myOrganizations}
         organizationId={organizationId}
+        isAdmin={userRole === 'admin'}
+        planTier={user?.planTier || 'free'}
       />
     </div>
   );

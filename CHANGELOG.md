@@ -10,6 +10,12 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.
 - **Organização por Pastas no Bucket**: Os arquivos são automaticamente salvos em pastas semânticas (`/players`, `/clubs`, `/organizations`, `/competitions`) no Cloudflare R2, mantendo o storage organizado.
 - **Garbage Collection (Limpeza Inteligente)**: O sistema detecta automaticamente se uma imagem de perfil ou de clube foi alterada durante um "update", apagando o arquivo antigo permanentemente do bucket para economizar armazenamento.
 
+- **Súmulas Inteligentes e Integridade por Imagem (PRO)**:
+  - Competições agora possuem um fluxo rígido de validação baseado em upload de imagens (screenshots).
+  - Organizadores podem exigir prints específicos (ex: Placar, Estatísticas Individuais, Tela de Lobby) e definir quem valida a partida (Apenas Admin, Apenas um Manager, ou Acordo Mútuo entre ambos os managers).
+  - Fluxo de **Acordo Mútuo**: Um manager submete a súmula com os prints, e o manager rival visualiza os arquivos para "Aceitar Resultado" ou "Contestar (Disputar)". Resultados contestados trancam a validação até que a administração resolva.
+  - Painel de Súmula Dinâmico na tela da partida, reagindo ao estado de submissão.
+  
 ## [0.6.5] - 2026-03-23
 ### Added
 - **Fase 7: Feed Interativo & Mercado Proativo**

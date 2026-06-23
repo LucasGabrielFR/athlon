@@ -1,7 +1,8 @@
 import { auth, signOut } from '@/auth';
 import { db } from '@/db';
-import { playerProfiles, modalities } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { playerProfiles, modalities, notifications } from '@/db/schema';
+import { eq, desc } from 'drizzle-orm';
+import { NotificationBell } from './notification-bell';
 
 export async function Header() {
   const session = await auth();
@@ -21,6 +22,14 @@ export async function Header() {
       activeModality = mod?.name ?? null;
     }
   }
+  let userNotifications: any[] = [];
+  if (userId) {
+    userNotifications = await db.query.notifications.findMany({
+      where: eq(notifications.userId, userId),
+      orderBy: [desc(notifications.createdAt)],
+      limit: 10,
+    });
+  }
 
   return (
     <header className="fixed top-0 left-64 right-0 h-16 bg-navy/80 backdrop-blur border-b border-azure/10 z-40 flex items-center justify-between px-6">
@@ -38,12 +47,15 @@ export async function Header() {
           </span>
         )}
       </div>
-      <form
-        action={async () => {
-          'use server';
-          await signOut({ redirectTo: '/login' });
-        }}
-      >
+      <div className="flex items-center gap-6">
+        {userId && <NotificationBell initialNotifications={userNotifications} />}
+        
+        <form
+          action={async () => {
+            'use server';
+            await signOut({ redirectTo: '/login' });
+          }}
+        >
         <button
           type="submit"
           className="text-sm text-ice/40 hover:text-red-400 transition-colors"
@@ -51,6 +63,7 @@ export async function Header() {
           Sair →
         </button>
       </form>
+      </div>
     </header>
   );
 }

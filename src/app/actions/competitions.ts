@@ -15,7 +15,10 @@ import {
   trophies,
   statTypes,
   competitionPostComments,
-  competitionPostReactions
+  competitionPostReactions,
+  competitionScreenshotRequirements,
+  matchScreenshots,
+  users
 } from '@/db/schema';
 
 import { eq, and, notInArray, sql, inArray, desc, avg } from 'drizzle-orm';
@@ -23,6 +26,7 @@ import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { deleteFile } from '@/lib/storage';
+import { createNotification } from './notifications';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -68,6 +72,9 @@ export async function createCompetitionAction(formData: FormData) {
   const entryFee = Number(formData.get('entryFee')) || 0;
   const prizePool = Number(formData.get('prizePool')) || 0;
   const requiresValidation = formData.get('requiresValidation') === 'on';
+  
+  const isProStatsEnabled = formData.get('isProStatsEnabled') === 'on';
+  const resultSubmissionPolicy = (formData.get('resultSubmissionPolicy') as string) || 'manager_mutual';
   
   const maxTeams = formData.get('maxTeams') ? Number(formData.get('maxTeams')) : null;
   const minPlayersPerTeam = Number(formData.get('minPlayersPerTeam')) || 1;
@@ -129,6 +136,14 @@ export async function createCompetitionAction(formData: FormData) {
     throw new Error('Você deve ser o presidente da organização selecionada para criar uma competição nela.');
   }
 
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+  });
+  
+  const isPro = user?.planTier === 'pro' || role === 'admin';
+  const finalIsProStatsEnabled = isPro ? isProStatsEnabled : false;
+  const requiresImageVerification = isPro ? (formData.get('requiresImageVerification') === 'on') : false;
+
   const [newComp] = await db.insert(competitions).values({
     name,
     modalityId,
@@ -147,12 +162,29 @@ export async function createCompetitionAction(formData: FormData) {
     groupsConfig,
     status: 'planned',
     requiresValidation,
+    requiresImageVerification,
+    isProStatsEnabled: finalIsProStatsEnabled,
+    resultSubmissionPolicy,
   }).$returningId();
 
   if (!newComp?.id) redirect('/dashboard/competitions?error=creation_failed');
+  const compId = newComp.id;
+
+  // Save Screenshot Requirements
+  if (isPro && requiresImageVerification) {
+    const requiredScreenshots = formData.getAll('screenshotRequirements'); // e.g. ["Placar Final", "Notas dos Jogadores"]
+    if (requiredScreenshots.length > 0) {
+      const requirementsToInsert = requiredScreenshots.map(title => ({
+        competitionId: compId,
+        title: title as string,
+        isRequired: true,
+      }));
+      await db.insert(competitionScreenshotRequirements).values(requirementsToInsert);
+    }
+  }
 
   revalidatePath('/dashboard/competitions');
-  redirect(`/dashboard/competitions/${newComp.id}`);
+  redirect(`/dashboard/competitions/${compId}`);
 }
 
 // ── Club Registration ──────────────────────────────────────────────────────
@@ -400,6 +432,11 @@ export async function updateCompetitionAction(formData: FormData) {
   // Fields with restrictions if status !== 'planned'
   const updates: any = { name, description, rulesJson };
 
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+  });
+  const isPro = user?.planTier === 'pro' || role === 'admin';
+
   if (comp.status === 'planned' || comp.status === 'registration' || role === 'admin') {
     updates.maxTeams = formData.get('maxTeams') ? Number(formData.get('maxTeams')) : comp.maxTeams;
     updates.minPlayersPerTeam = formData.get('minPlayersPerTeam') ? Number(formData.get('minPlayersPerTeam')) : comp.minPlayersPerTeam;
@@ -431,11 +468,54 @@ export async function updateCompetitionAction(formData: FormData) {
     if (formData.has('requiresValidation')) {
       updates.requiresValidation = formData.get('requiresValidation') === 'on';
     }
+    if (formData.has('resultSubmissionPolicy')) {
+      updates.resultSubmissionPolicy = formData.get('resultSubmissionPolicy') as string;
+    }
+    if (formData.has('isProStatsEnabled')) {
+      updates.isProStatsEnabled = isPro ? (formData.get('isProStatsEnabled') === 'on') : false;
+    }
+    if (formData.has('requiresImageVerification')) {
+      updates.requiresImageVerification = isPro ? (formData.get('requiresImageVerification') === 'on') : false;
+    }
+  }
+
+  // Handle checkboxes that might not be sent if unchecked
+  if (comp.status === 'planned' || comp.status === 'registration' || role === 'admin') {
+    if (!formData.has('requiresValidation') && formData.get('requiresValidation_present') === '1') {
+      updates.requiresValidation = false;
+    }
+    if (!formData.has('isProStatsEnabled') && formData.get('isProStatsEnabled_present') === '1') {
+      updates.isProStatsEnabled = false;
+    }
+    if (!formData.has('requiresImageVerification') && formData.get('requiresImageVerification_present') === '1') {
+      updates.requiresImageVerification = false;
+    }
   }
 
   await db.update(competitions)
     .set(updates)
     .where(eq(competitions.id, competitionId));
+
+  // Update Screenshot Requirements if Pro
+  if (isPro) {
+    const isImageVerificationEnabled = updates.requiresImageVerification ?? comp.requiresImageVerification;
+    
+    // Clear old requirements
+    await db.delete(competitionScreenshotRequirements)
+      .where(eq(competitionScreenshotRequirements.competitionId, competitionId));
+
+    if (isImageVerificationEnabled) {
+      const requiredScreenshots = formData.getAll('screenshotRequirements');
+      if (requiredScreenshots.length > 0) {
+        const requirementsToInsert = requiredScreenshots.map(title => ({
+          competitionId,
+          title: title as string,
+          isRequired: true,
+        }));
+        await db.insert(competitionScreenshotRequirements).values(requirementsToInsert);
+      }
+    }
+  }
 
   revalidatePath(`/dashboard/competitions/${competitionId}`);
   return { success: true };
@@ -1352,3 +1432,299 @@ export async function togglePostReactionAction(formData: FormData) {
 
   revalidatePath(`/dashboard/competitions/${post.competitionId}`);
 }
+
+// ── Match PRO Workflows (Súmulas) ─────────────────────────────────────────
+
+export async function submitMatchReportAction(formData: FormData) {
+  const { userId, role } = await requireSession();
+  const matchId = Number(formData.get('matchId'));
+  const homeScore = Number(formData.get('homeScore'));
+  const awayScore = Number(formData.get('awayScore'));
+  
+  // Screenshots
+  const requirementIds = formData.getAll('requirementId');
+  const mediaUrls = formData.getAll('mediaUrl');
+
+  try {
+    const match = await db.query.matches.findFirst({
+      where: eq(matches.id, matchId),
+      with: { 
+        competition: true,
+        homeRegistration: { with: { club: true } },
+        awayRegistration: { with: { club: true } }
+      }
+    });
+
+    if (!match) throw new Error('Partida não encontrada.');
+
+    const comp = match.competition;
+    const isHomeManager = match.homeRegistration?.club?.presidentId === userId;
+    const isAwayManager = match.awayRegistration?.club?.presidentId === userId;
+    const isOrgPresident = comp.organizationId && (await db.query.organizations.findFirst({ where: eq(organizations.id, comp.organizationId) }))?.presidentId === userId;
+    const isAdmin = role === 'admin' || isOrgPresident || comp.organizerId === userId;
+
+    if (!isAdmin && !isHomeManager && !isAwayManager) {
+      throw new Error('Você não tem permissão para reportar essa partida.');
+    }
+
+    if (comp.resultSubmissionPolicy === 'admin_only' && !isAdmin) {
+      throw new Error('Apenas a administração pode reportar resultados nesta competição.');
+    }
+
+    let nextStatus = match.submissionStatus;
+    let registrationId = isHomeManager ? match.homeRegistrationId : (isAwayManager ? match.awayRegistrationId : null);
+
+    if (isAdmin && !registrationId) {
+      registrationId = match.homeRegistrationId; // Admin test fallback
+    }
+
+    const forceValidate = formData.get('forceValidate') === 'true';
+
+    if (isAdmin && forceValidate) {
+      nextStatus = 'validated';
+    } else if (isAdmin && comp.resultSubmissionPolicy !== 'manager_mutual') {
+      nextStatus = 'validated';
+    } else if (isAdmin && comp.resultSubmissionPolicy === 'manager_mutual' && match.submissionStatus === 'pending') {
+      nextStatus = 'submitted_by_home'; // Simulate home submission for admin
+    } else if (comp.resultSubmissionPolicy === 'manager_single') {
+      nextStatus = 'pending'; // Needs admin approval if requiresValidation is true? Wait, single means the manager can submit without the other's approval.
+      if (!comp.requiresValidation) {
+        nextStatus = 'validated';
+      }
+    } else if (comp.resultSubmissionPolicy === 'manager_mutual') {
+      if (isHomeManager) nextStatus = 'submitted_by_home';
+      else if (isAwayManager) nextStatus = 'submitted_by_away';
+    }
+
+    await db.transaction(async (tx) => {
+      // 1. Update match scores and status
+      await tx.update(matches)
+        .set({ 
+          homeScore, 
+          awayScore, 
+          status: 'finished', // Once reported, it goes to finished
+          submissionStatus: nextStatus,
+          isValidated: nextStatus === 'validated',
+          updatedAt: new Date()
+        })
+        .where(eq(matches.id, matchId));
+
+      // 2. Save screenshots if any
+      if (registrationId && requirementIds.length > 0) {
+        for (let i = 0; i < requirementIds.length; i++) {
+          const reqId = Number(requirementIds[i]);
+          const mUrl = mediaUrls[i] as string;
+          if (reqId && mUrl) {
+            // Upsert screenshot
+            const existing = await tx.query.matchScreenshots.findFirst({
+              where: and(eq(matchScreenshots.matchId, matchId), eq(matchScreenshots.requirementId, reqId), eq(matchScreenshots.registrationId, registrationId))
+            });
+
+            if (existing) {
+              await tx.update(matchScreenshots).set({ mediaUrl: mUrl, status: 'pending' }).where(eq(matchScreenshots.id, existing.id));
+            } else {
+              await tx.insert(matchScreenshots).values({
+                matchId,
+                requirementId: reqId,
+                registrationId: registrationId!,
+                mediaUrl: mUrl,
+                status: 'pending'
+              });
+            }
+          }
+        }
+      }
+
+      // 3. Process validation side-effects if it got instantly validated
+      if (nextStatus === 'validated') {
+        const updatedMatch = await tx.query.matches.findFirst({ where: eq(matches.id, matchId) });
+        if (updatedMatch) await triggerMatchValidationSideEffects(tx, updatedMatch, comp);
+      }
+    });
+
+    // ── NOTIFICATIONS ──
+    const opponentManagerId = isHomeManager ? match.awayRegistration?.club?.presidentId : match.homeRegistration?.club?.presidentId;
+    
+    if (nextStatus === 'submitted_by_home' || nextStatus === 'submitted_by_away') {
+      if (opponentManagerId) {
+        await createNotification({
+          userId: opponentManagerId,
+          type: 'match_update',
+          title: 'Súmula enviada',
+          message: `O adversário enviou a súmula. O placar reportado foi ${homeScore} x ${awayScore}. Valide agora!`,
+          link: `/dashboard/competitions/${comp.id}/matches/${matchId}`
+        });
+      }
+    } else if (nextStatus === 'validated' && isAdmin && forceValidate) {
+      if (match.homeRegistration?.club?.presidentId) {
+         await createNotification({ userId: match.homeRegistration.club.presidentId, type: 'match_update', title: 'Súmula Resolvida', message: 'Um Administrador validou forçadamente o resultado da sua partida.', link: `/dashboard/competitions/${comp.id}/matches/${matchId}` });
+      }
+      if (match.awayRegistration?.club?.presidentId) {
+         await createNotification({ userId: match.awayRegistration.club.presidentId, type: 'match_update', title: 'Súmula Resolvida', message: 'Um Administrador validou forçadamente o resultado da sua partida.', link: `/dashboard/competitions/${comp.id}/matches/${matchId}` });
+      }
+    }
+
+    revalidatePath(`/dashboard/competitions/${comp.id}/matches/${matchId}`);
+    return { success: true };
+  } catch (err: any) {
+    console.error('Submit Report Error:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+export async function acceptMatchSubmissionAction(formData: FormData) {
+  const { userId } = await requireSession();
+  const matchId = Number(formData.get('matchId'));
+
+  try {
+    const match = await db.query.matches.findFirst({
+      where: eq(matches.id, matchId),
+      with: { 
+        competition: true,
+        homeRegistration: { with: { club: true } },
+        awayRegistration: { with: { club: true } }
+      }
+    });
+
+    if (!match) throw new Error('Partida não encontrada.');
+
+    const isHomeManager = match.homeRegistration?.club?.presidentId === userId;
+    const isAwayManager = match.awayRegistration?.club?.presidentId === userId;
+
+    const { role } = await requireSession();
+    const isOrgPresident = match.competition.organizationId && (await db.query.organizations.findFirst({ where: eq(organizations.id, match.competition.organizationId) }))?.presidentId === userId;
+    const isAdmin = role === 'admin' || isOrgPresident || match.competition.organizerId === userId;
+
+    if (!isAdmin) {
+      if (match.submissionStatus === 'submitted_by_home' && !isAwayManager) {
+        throw new Error('Apenas o manager do time visitante pode aceitar esta súmula.');
+      }
+      if (match.submissionStatus === 'submitted_by_away' && !isHomeManager) {
+        throw new Error('Apenas o manager do time da casa pode aceitar esta súmula.');
+      }
+    }
+
+    const nextStatus = match.competition.requiresValidation ? 'pending_validation' : 'validated';
+
+    await db.transaction(async (tx) => {
+      await tx.update(matches)
+        .set({ submissionStatus: nextStatus, isValidated: nextStatus === 'validated', updatedAt: new Date() })
+        .where(eq(matches.id, matchId));
+
+      if (nextStatus === 'validated') {
+        await triggerMatchValidationSideEffects(tx, match, match.competition);
+      }
+    });
+
+    const opponentManagerId = isHomeManager ? match.awayRegistration?.club?.presidentId : match.homeRegistration?.club?.presidentId;
+    if (opponentManagerId) {
+      await createNotification({
+        userId: opponentManagerId,
+        type: 'match_update',
+        title: 'Súmula aprovada',
+        message: 'O seu adversário validou o resultado da partida!',
+        link: `/dashboard/competitions/${match.competitionId}/matches/${matchId}`
+      });
+    }
+
+    revalidatePath(`/dashboard/competitions/${match.competitionId}/matches/${matchId}`);
+    return { success: true };
+  } catch (err: any) {
+    console.error('Accept Submission Error:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+export async function disputeMatchSubmissionAction(formData: FormData) {
+  const { userId } = await requireSession();
+  const matchId = Number(formData.get('matchId'));
+
+  try {
+    const match = await db.query.matches.findFirst({
+      where: eq(matches.id, matchId),
+      with: { 
+        competition: true,
+        homeRegistration: { with: { club: true } },
+        awayRegistration: { with: { club: true } }
+      }
+    });
+
+    if (!match) throw new Error('Partida não encontrada.');
+
+    const isHomeManager = match.homeRegistration?.club?.presidentId === userId;
+    const isAwayManager = match.awayRegistration?.club?.presidentId === userId;
+
+    const { role } = await requireSession();
+    const isOrgPresident = match.competition.organizationId && (await db.query.organizations.findFirst({ where: eq(organizations.id, match.competition.organizationId) }))?.presidentId === userId;
+    const isAdmin = role === 'admin' || isOrgPresident || match.competition.organizerId === userId;
+
+    if (!isAdmin && !isHomeManager && !isAwayManager) {
+      throw new Error('Apenas os managers envolvidos podem disputar a súmula.');
+    }
+
+    await db.update(matches)
+      .set({ submissionStatus: 'disputed', updatedAt: new Date() })
+      .where(eq(matches.id, matchId));
+
+    const opponentManagerId = isHomeManager ? match.awayRegistration?.club?.presidentId : match.homeRegistration?.club?.presidentId;
+    if (opponentManagerId) {
+      await createNotification({
+        userId: opponentManagerId,
+        type: 'match_update',
+        title: 'Súmula contestada',
+        message: 'O seu adversário contestou o resultado da partida. Um administrador precisará resolver.',
+        link: `/dashboard/competitions/${match.competitionId}/matches/${matchId}`
+      });
+    }
+    if (match.competition.organizerId) {
+       await createNotification({
+         userId: match.competition.organizerId,
+         type: 'match_dispute',
+         title: 'Disputa de Súmula',
+         message: `Uma disputa foi aberta na competição ${match.competition.name}.`,
+         link: `/dashboard/competitions/${match.competitionId}/matches/${matchId}`
+       });
+    }
+
+    revalidatePath(`/dashboard/competitions/${match.competitionId}/matches/${matchId}`);
+    return { success: true };
+  } catch (err: any) {
+    console.error('Dispute Submission Error:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+async function triggerMatchValidationSideEffects(tx: any, match: any, comp: any) {
+  // Award Prestige Points
+  const hScore = match.homeScore || 0;
+  const aScore = match.awayScore || 0;
+  
+  if (match.homeRegistrationId && match.awayRegistrationId) {
+    const homeReg = await tx.query.competitionRegistrations.findFirst({ where: eq(competitionRegistrations.id, match.homeRegistrationId) });
+    const awayReg = await tx.query.competitionRegistrations.findFirst({ where: eq(competitionRegistrations.id, match.awayRegistrationId) });
+    
+    if (homeReg && awayReg) {
+      let hPoints = 1; let aPoints = 1;
+      if (hScore > aScore) hPoints = 10;
+      else if (aScore > hScore) aPoints = 10;
+      else { hPoints = 3; aPoints = 3; }
+
+      await tx.update(clubs).set({ prestigePoints: sql`${clubs.prestigePoints} + ${hPoints}` }).where(eq(clubs.id, homeReg.clubId));
+      await tx.update(clubs).set({ prestigePoints: sql`${clubs.prestigePoints} + ${aPoints}` }).where(eq(clubs.id, awayReg.clubId));
+    }
+  }
+
+  // Knockout Progression
+  if (comp.format === 'knockout' || comp.format === 'groups_knockout') {
+    await processKnockoutProgression(tx, match);
+  }
+
+  // System post
+  await tx.insert(competitionPosts).values({
+    competitionId: comp.id,
+    authorId: comp.organizerId, // Mock as organizer
+    type: 'system',
+    content: `✅ Resultado oficializado: **${match.homeScore} x ${match.awayScore}**. Prestígio atribuído aos clubes.`
+  });
+}
+

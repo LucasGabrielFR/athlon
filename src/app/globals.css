@@ -32,3 +32,11 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
 }
+
+/* Global Select Options Styling */
+option {
+  background-color: var(--athlon-slate);
+  color: var(--athlon-ice);
+  padding: 12px;
+  font-weight: 600;
+}

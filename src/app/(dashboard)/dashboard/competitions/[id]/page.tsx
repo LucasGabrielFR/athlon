@@ -53,11 +53,16 @@ export default async function CompetitionDetailPage({
           awayRegistration: { with: { club: true } }
         },
         orderBy: [desc(matches.round)]
-      }
+      },
+      screenshotRequirements: true
     }
   });
 
   if (!comp) notFound();
+
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+  });
 
   // Organizer or Admin?
   const isOrganizer = comp.organizerId === userId || comp.organization?.presidentId === userId || (session?.user as any)?.role === 'admin';
@@ -87,6 +92,7 @@ export default async function CompetitionDetailPage({
   });
 
   const isRegistrationOpen = comp.isRegistrationManualOpen || comp.status === 'registration';
+  const isLocked = comp.status !== 'planned' && comp.status !== 'registration';
 
   // Calculate Standings (only if not pure knockout)
   const standingsMap = new Map<number, TeamStanding>();
@@ -604,13 +610,25 @@ export default async function CompetitionDetailPage({
                 <div className="grid gap-8">
                   <div className="space-y-4">
                     <p className="text-[10px] font-black text-azure uppercase tracking-widest italic px-1">Ações do Torneio</p>
-                    <div className="flex flex-wrap gap-4">
-                      <EditCompetitionDialog competition={comp} role={role} />
-                      <StartTournamentButton 
-                        competitionId={compId}
-                        disabled={comp.status !== 'registration' || allRegistrations.filter(r => r.status === 'approved').length < 2}
-                      />
-                    </div>
+                    
+                    {isOrganizer && (
+                      <div className="flex flex-col gap-2 pt-2 border-t border-azure/10">
+                        <EditCompetitionDialog 
+                          competition={comp} 
+                          role={role} 
+                          planTier={user?.planTier} 
+                          existingScreenshotRequirements={comp.screenshotRequirements.map(req => req.title)} 
+                        />
+                        {!isLocked && (
+                          <div className="pt-2">
+                            <StartTournamentButton 
+                              competitionId={compId}
+                              disabled={comp.status !== 'registration' || allRegistrations.filter(r => r.status === 'approved').length < 2}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-4 pt-4 border-t border-azure/5">

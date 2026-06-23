@@ -59,8 +59,9 @@
 ### RF-04 — Súmulas e Estatísticas
 | ID | Requisito |
 | :--- | :--- |
-| RF-04.1 | As súmulas de partida devem suportar registro atômico baseado nos tipos de eventos da modalidade (Ex: Gols, Kills). |
-| RF-04.2 | Resultados devem passar por validação pelo organizador do torneio. |
+| RF-04.1 | As súmulas de partida devem suportar registro atômico baseado nos tipos de eventos da modalidade (Ex: Gols, Kills) e estatísticas em profundidade de jogadores (rating, defesas). |
+| RF-04.2 | Resultados devem passar por validação pelo organizador do torneio através de **Súmulas Inteligentes**. O organizador define se a súmula requer validação simples do Admin ou Acordo Mútuo entre clubes. |
+| RF-04.2.1 | As Súmulas Inteligentes exigirão uploads de Imagens OBRIGATÓRIAS definidos pelo dono da competição (Ex: Print da Tela Final, Print do Lobby). O upload vai para o R2. |
 | RF-04.3 | O sistema deve acumular pontos de prestígio para clubes baseados em vitórias/empates. |
 | RF-04.4 | Exibição de líderes de torneio, gráficos de rating individual e galeria de troféus. |
 
@@ -85,12 +86,20 @@
 4. Ao fechar as inscrições, clica em "Iniciar Torneio", o que gera a tabela automática de jogos.
 5. Valida súmulas das partidas.
 
-### UC-02: Execução de Súmula em Tempo Real
+### UC-02: Envio e Validação de Súmula (Match Integrity)
 **Ator:** Presidente de Clube
-**Fluxo Principal:**
-1. Acessa a aba de partidas do torneio.
-2. Inicia a partida e começa a registrar os eventos via formulário dinâmico que puxa o elenco inscrito.
-3. Submete o resultado e aguarda a aprovação final do Presidente da Organização.
+**Fluxo Principal (Cenário: Acordo Mútuo):**
+1. Acessa a aba de partidas do torneio e acessa uma partida Específica.
+2. Inicia a partida. Durante o andamento, pode registrar eventos atômicos (gols, cartões).
+3. Após a partida, a aba "Súmula" exibe os requisitos de imagem exigidos pela Organização.
+4. O presidente preenche o placar e faz o upload (Presigned URL -> R2) das imagens comprobatórias e submete.
+5. O estado da partida muda para `submitted_by_home`.
+6. O Presidente do Clube rival acessa a partida, visualiza os prints anexados pelo primeiro, e clica em **Aceitar Resultado**.
+7. A partida ganha o status de `validated`, distribuindo os pontos na Classificação.
+
+**Fluxo Alternativo (Contestação):**
+1. No passo 6, se o rival não concordar com o placar/prints, ele clica em **Contestar (Disputar)**.
+2. O estado da partida muda para `disputed` e fica trancado, requerindo que o Admin visualize e resolva "Forçadamente".
 
 ### UC-03: Exploração e Mercado
 **Ator:** Jogador ou Presidente de Clube

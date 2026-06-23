@@ -9,13 +9,34 @@ export function NewCompetitionForm({
   allModalities,
   myOrganizations,
   organizationId,
+  isAdmin = false,
+  planTier = 'free',
 }: {
   allModalities: any[];
   myOrganizations: any[];
   organizationId?: string;
+  isAdmin?: boolean;
+  planTier?: string;
 }) {
   const [format, setFormat] = useState('round_robin');
   const [tieBreakerOrder, setTieBreakerOrder] = useState<string[]>(['pts', 'wins', 'goalDiff', 'goalsFor']);
+  const [requiresImageVerification, setRequiresImageVerification] = useState(false);
+  const [resultPolicy, setResultPolicy] = useState('manager_mutual');
+
+  const getPolicyDescription = (policy: string) => {
+    switch (policy) {
+      case 'manager_mutual':
+        return 'Qualquer manager envia o resultado. O adversário DEVE confirmar. Em caso de divergência, ele pode contestar para análise do Admin.';
+      case 'manager_single':
+        return 'Qualquer manager pode enviar o resultado e ele já é APROVADO AUTOMATICAMENTE. Ideal para torneios rápidos de alta confiança.';
+      case 'admin_only':
+        return 'Apenas a administração do torneio pode preencher e validar resultados. Os times não possuem acesso ao envio de súmulas.';
+      default:
+        return '';
+    }
+  };
+
+  const isPro = planTier === 'pro' || isAdmin;
 
   return (
     <form action={createCompetitionAction} className="space-y-8">
@@ -367,6 +388,96 @@ export function NewCompetitionForm({
                 className="w-full bg-slate-dark border border-azure/20 rounded-xl px-4 py-3 text-ice focus:border-azure focus:outline-none transition-all"
               />
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Step 5: Match & Results Rules */}
+      <section className="bg-slate border border-azure/10 rounded-3xl p-8 space-y-6">
+        <div className="flex items-center gap-3 mb-2">
+          <span className="h-8 w-8 bg-azure/10 text-azure rounded-lg flex items-center justify-center font-black text-sm">5</span>
+          <h3 className="text-lg font-bold text-ice">Regras de Súmula e Resultados</h3>
+        </div>
+
+        <div className="grid grid-cols-1 gap-6">
+          <div className="space-y-4">
+            <label className="text-[10px] text-azure/50 uppercase tracking-[0.2em] font-black px-1">Quem pode enviar os resultados das partidas?</label>
+            <select 
+              name="resultSubmissionPolicy"
+              required
+              value={resultPolicy}
+              onChange={(e) => setResultPolicy(e.target.value)}
+              className="w-full bg-slate-dark border border-azure/20 rounded-xl px-4 py-3 text-ice focus:border-azure focus:outline-none transition-all appearance-none font-bold"
+            >
+              <option value="manager_mutual" className="bg-slate-dark text-ice font-bold py-2">Managers enviam e validam (Acordo Mútuo)</option>
+              <option value="manager_single" className="bg-slate-dark text-ice font-bold py-2">Apenas 1 Manager envia e já aprova</option>
+              <option value="admin_only" className="bg-slate-dark text-ice font-bold py-2">Somente a Administração lança resultados</option>
+            </select>
+            <div className="bg-azure/5 border-l-2 border-azure p-3 rounded-r-xl mt-2 animate-in fade-in slide-in-from-top-2">
+              <p className="text-xs text-ice/80 leading-relaxed font-medium">
+                {getPolicyDescription(resultPolicy)}
+              </p>
+            </div>
+            <p className="text-[10px] text-ice/30 font-bold uppercase tracking-widest pl-1 mt-2">O administrador sempre poderá sobrepor os resultados independentemente da regra.</p>
+          </div>
+
+          <div className={`bg-slate-dark/50 border ${isPro ? 'border-amber-400/30' : 'border-azure/10 opacity-60'} rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between transition-all gap-4`}>
+            <div className="space-y-1">
+              <label className="text-sm font-bold text-ice flex items-center gap-2">
+                Habilitar Súmula Avançada (PRO)
+                <Info size={14} className={isPro ? "text-amber-400" : "text-azure opacity-50"} />
+              </label>
+              <p className="text-[10px] text-ice/40 uppercase font-black italic">Libera avaliação de Notas (Rating) dos jogadores, defesas e dados aprofundados.</p>
+              {!isPro && <p className="text-[9px] text-amber-500 uppercase tracking-widest italic font-bold">Requer assinatura PRO</p>}
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer shrink-0">
+              <input type="checkbox" name="isProStatsEnabled" className="sr-only peer" disabled={!isPro} />
+              <div className={`w-14 h-7 bg-slate-dark border ${isPro ? 'border-amber-400/20' : 'border-azure/20'} peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:start-[4px] after:bg-amber-400 after:border-amber-400 after:border after:rounded-full after:h-5 after:w-6 after:transition-all ${isPro ? 'peer-checked:bg-amber-400/20 peer-checked:border-amber-400' : ''}`}></div>
+            </label>
+          </div>
+
+          <div className="pt-4 border-t border-azure/5">
+            <div className={`bg-slate-dark/50 border ${isPro ? 'border-azure/30 hover:border-azure/50' : 'border-azure/10 opacity-60'} rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between transition-all gap-4 mb-6`}>
+              <div className="space-y-1">
+                <label className="text-sm font-bold text-ice flex items-center gap-2">
+                  Exigir Provas Visuais (Integridade PRO)
+                  <Info size={14} className="text-azure opacity-50" />
+                </label>
+                <p className="text-[10px] text-ice/40 uppercase font-black italic">Obriga o envio de prints/fotos para validar as súmulas.</p>
+                {!isPro && <p className="text-[9px] text-amber-500 uppercase tracking-widest italic font-bold">Requer assinatura PRO</p>}
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                <input 
+                  type="checkbox" 
+                  name="requiresImageVerification" 
+                  className="sr-only peer" 
+                  disabled={!isPro}
+                  checked={isPro && requiresImageVerification}
+                  onChange={(e) => setRequiresImageVerification(e.target.checked)}
+                />
+                <div className={`w-14 h-7 bg-slate-dark border border-azure/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:start-[4px] after:bg-azure after:border-azure after:border after:rounded-full after:h-5 after:w-6 after:transition-all ${isPro ? 'peer-checked:bg-azure/20 peer-checked:border-azure' : ''}`}></div>
+              </label>
+            </div>
+
+            {requiresImageVerification && isPro && (
+              <div className="animate-in fade-in slide-in-from-top-4 duration-300">
+                <h4 className="text-[10px] text-azure/50 uppercase tracking-[0.2em] font-black mb-4 px-1">Selecione as provas exigidas (1 a 5)</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {[
+                    "Placar Final (Resultado)", 
+                    "Notas (Rating) do Time Casa", 
+                    "Notas (Rating) do Time Fora", 
+                    "Estatísticas de Gols/Assistências", 
+                    "Print do Lobby/Saguão"
+                  ].map(req => (
+                    <label key={req} className="flex items-center gap-3 bg-slate-dark p-3 rounded-xl border border-azure/10 cursor-pointer hover:border-azure/30 transition-colors">
+                      <input type="checkbox" name="screenshotRequirements" value={req} className="w-4 h-4 rounded border-slate-600 text-azure focus:ring-azure focus:ring-offset-slate-dark bg-slate-800" />
+                      <span className="text-sm font-bold text-ice">{req}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </section>

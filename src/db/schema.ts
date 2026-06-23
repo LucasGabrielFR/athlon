@@ -14,6 +14,7 @@ export const users = mysqlTable('users', {
   passwordHash: varchar('password_hash', { length: 255 }),
   image: varchar('image', { length: 500 }),
   role: varchar('role', { length: 50 }).notNull().default('player'), // player | club_president | org_president | admin
+  planTier: varchar('plan_tier', { length: 50 }).notNull().default('free'), // free | pro
   location: varchar('location', { length: 255 }),
   birthDate: timestamp('birth_date'),
   createdAt: timestamp('created_at').defaultNow(),
@@ -159,6 +160,9 @@ export const competitions = mysqlTable('competitions', {
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
   requiresValidation: boolean('requires_validation').notNull().default(false),
+  requiresImageVerification: boolean('requires_image_verification').notNull().default(false),
+  isProStatsEnabled: boolean('is_pro_stats_enabled').notNull().default(false),
+  resultSubmissionPolicy: varchar('result_submission_policy', { length: 30 }).notNull().default('manager_mutual'), // admin_only | manager_mutual | manager_single
 });
 
 // ──────────────────────────────────────────
@@ -321,6 +325,7 @@ export const matches = mysqlTable('matches', {
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
   isValidated: boolean('is_validated').notNull().default(false),
+  submissionStatus: varchar('submission_status', { length: 30 }).notNull().default('pending'), // pending | submitted_by_home | submitted_by_away | disputed | validated
 }, (table) => [
   foreignKey({
     name: 'match_comp_id_fk',
@@ -557,6 +562,7 @@ export const competitionsRelations = relations(competitions, ({ one, many }) => 
   registrations: many(competitionRegistrations),
   posts: many(competitionPosts),
   matches: many(matches),
+  screenshotRequirements: many(competitionScreenshotRequirements),
 }));
 
 export const matchesRelations = relations(matches, ({ one, many }) => ({
@@ -713,6 +719,90 @@ export const trophiesRelations = relations(trophies, ({ one }) => ({
   }),
   user: one(users, {
     fields: [trophies.userId],
+    references: [users.id],
+  }),
+}));
+
+// ──────────────────────────────────────────
+// COMPETITION SCREENSHOT REQUIREMENTS (regras da súmula PRO)
+// ──────────────────────────────────────────
+
+export const competitionScreenshotRequirements = mysqlTable('competition_screenshot_requirements', {
+  id: serial('id').primaryKey(),
+  competitionId: bigint('competition_id', { mode: 'number', unsigned: true }).notNull(),
+  title: varchar('title', { length: 150 }).notNull(), // ex: "Print do Resultado"
+  description: text('description'),
+  isRequired: boolean('is_required').notNull().default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+}, (table) => [
+  foreignKey({
+    name: 'comp_req_comp_id_fk',
+    columns: [table.competitionId],
+    foreignColumns: [competitions.id],
+  }).onDelete('cascade'),
+]);
+
+export const competitionScreenshotRequirementsRelations = relations(competitionScreenshotRequirements, ({ one, many }) => ({
+  competition: one(competitions, {
+    fields: [competitionScreenshotRequirements.competitionId],
+    references: [competitions.id],
+  }),
+}));
+
+// ──────────────────────────────────────────
+// MATCH SCREENSHOTS (provas enviadas)
+// ──────────────────────────────────────────
+
+export const matchScreenshots = mysqlTable('match_screenshots', {
+  id: serial('id').primaryKey(),
+  matchId: bigint('match_id', { mode: 'number', unsigned: true }).notNull(),
+  requirementId: bigint('requirement_id', { mode: 'number', unsigned: true }).notNull(),
+  registrationId: bigint('registration_id', { mode: 'number', unsigned: true }).notNull(), // qual time enviou
+  mediaUrl: varchar('media_url', { length: 500 }).notNull(),
+  status: varchar('status', { length: 30 }).notNull().default('pending'), // pending | approved | rejected
+  createdAt: timestamp('created_at').defaultNow(),
+}, (table) => [
+  foreignKey({
+    name: 'ms_match_id_fk',
+    columns: [table.matchId],
+    foreignColumns: [matches.id],
+  }).onDelete('cascade'),
+  foreignKey({
+    name: 'ms_req_id_fk',
+    columns: [table.requirementId],
+    foreignColumns: [competitionScreenshotRequirements.id],
+  }).onDelete('cascade'),
+  foreignKey({
+    name: 'ms_reg_id_fk',
+    columns: [table.registrationId],
+    foreignColumns: [competitionRegistrations.id],
+  }).onDelete('cascade'),
+]);
+
+// ──────────────────────────────────────────
+// NOTIFICATIONS
+// ──────────────────────────────────────────
+
+export const notifications = mysqlTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: bigint('user_id', { mode: 'number', unsigned: true }).notNull(),
+  type: varchar('type', { length: 50 }).notNull(),
+  title: varchar('title', { length: 255 }).notNull(),
+  message: text('message').notNull(),
+  link: varchar('link', { length: 500 }),
+  isRead: boolean('is_read').notNull().default(false),
+  createdAt: timestamp('created_at').defaultNow(),
+}, (table) => [
+  foreignKey({
+    name: 'notif_user_id_fk',
+    columns: [table.userId],
+    foreignColumns: [users.id],
+  }).onDelete('cascade'),
+]);
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
     references: [users.id],
   }),
 }));

@@ -61,7 +61,7 @@ Organizações, Elencos      Estatísticas e Troféus       Mercado Proativo    
 | ✅ | **Infraestrutura Cloudflare R2:** Setup do bucket S3-compatible para armazenamento de mídia. |
 | ✅ | **Uploads de Identidade:** Fotos de perfil, escudos de clubes, logos de organizações. |
 | ✅ | **Camada PRO de Mídia:** Upload de imagens em posts e artes de elenco. |
-| 🚧 | **Integridade por Imagem (PRO):** Anexos ("prints") na súmula das partidas para validação de resultados. |
+| ✅ | **Integridade por Imagem (PRO):** Anexos ("prints") na súmula das partidas para validação de resultados. |
 | 🚧 | **Notificações Integradas:** Alertas via Web Push/Email (convites, jogos, etc). |
 
 ---

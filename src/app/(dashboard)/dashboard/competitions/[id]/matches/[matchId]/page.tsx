@@ -1,6 +1,6 @@
 import { auth } from '@/auth';
 import { db } from '@/db';
-import { matches, matchEvents, competitionRegistrations, users, clubs, statTypes, competitions } from '@/db/schema';
+import { matches, matchEvents, competitionRegistrations, users, clubs, statTypes, competitions, competitionScreenshotRequirements, matchScreenshots } from '@/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
@@ -8,6 +8,7 @@ import { Trophy, ChevronLeft, Clock, Play, CheckCircle2, AlertCircle, Plus, Chev
 import { recordMatchEventAction, updateMatchStatusAction } from '@/app/actions/competitions';
 import { MatchPolling } from '@/components/match-polling';
 import { MatchEventForm } from '@/components/match-event-form';
+import { MatchReportForm } from '@/components/match-report-form';
 
 export default async function MatchManagementPage({ 
   params 
@@ -57,6 +58,16 @@ export default async function MatchManagementPage({
   }
 
   const modStats = match.competition.modality?.statTypes ?? [];
+
+  // Fetch Screenshot Requirements
+  const requirements = await db.query.competitionScreenshotRequirements.findMany({
+    where: eq(competitionScreenshotRequirements.competitionId, compId)
+  });
+
+  // Fetch submitted screenshots
+  const screenshots = await db.query.matchScreenshots.findMany({
+    where: eq(matchScreenshots.matchId, matchId)
+  });
 
   return (
     <div className="space-y-8 pb-20">
@@ -146,10 +157,21 @@ export default async function MatchManagementPage({
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-          {/* Event Recording Form */}
-          <div className="lg:col-span-1">
-             <MatchEventForm 
-                matchId={matchId}
+          {/* Coluna Esquerda: Event Recording ou Súmula (se finalizar) */}
+          <div className="lg:col-span-1 space-y-6">
+             <MatchReportForm 
+                match={match}
+                comp={match.competition}
+                requirements={requirements}
+                screenshots={screenshots}
+                isAdmin={!!isOrganizer}
+                isHomeManager={isHomePresident}
+                isAwayManager={isAwayPresident}
+             />
+
+             {match.status !== 'finished' && (
+                 <MatchEventForm 
+                    matchId={matchId}
                 homeTeam={{
                    id: match.homeRegistrationId!,
                    name: match.homeRegistration.club.name,
@@ -168,6 +190,7 @@ export default async function MatchManagementPage({
                  ]}
                 status={match.status}
              />
+             )}
           </div>
 
           {/* Events Feed */}
