@@ -88,7 +88,7 @@ export function ImageUpload({ onUploadSuccess, defaultImage, className = "", lab
   };
 
   return (
-    <div className={`relative flex flex-col items-center justify-center border-2 border-dashed border-slate-700 bg-slate-800/50 rounded-xl overflow-hidden group cursor-pointer transition-colors hover:border-blue-500 hover:bg-slate-800 ${className}`} onClick={() => fileInputRef.current?.click()}>
+    <div className={`relative flex flex-col items-center justify-center border-2 border-dashed border-azure/20 bg-slate-dark/50 rounded-xl overflow-hidden group cursor-pointer transition-colors hover:border-azure hover:bg-slate-dark ${className}`} onClick={() => fileInputRef.current?.click()}>
       
       {previewUrl ? (
         <div className="absolute inset-0 w-full h-full">
@@ -101,11 +101,11 @@ export function ImageUpload({ onUploadSuccess, defaultImage, className = "", lab
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center p-6 text-center">
-          <div className="bg-slate-700/50 p-3 rounded-full mb-3 text-slate-300 group-hover:text-blue-400 group-hover:bg-blue-500/10 transition-colors">
+          <div className="bg-slate-dark p-3 rounded-full mb-3 text-ice/60 group-hover:text-azure group-hover:bg-azure/10 transition-colors">
             <UploadCloud size={24} />
           </div>
-          <p className="text-sm font-medium text-slate-200">{label}</p>
-          <p className="text-xs text-slate-400 mt-1">JPEG, PNG ou WebP até 5MB</p>
+          <p className="text-sm font-medium text-ice">{label}</p>
+          <p className="text-xs text-ice/40 mt-1">JPEG, PNG ou WebP até 5MB</p>
         </div>
       )}
 

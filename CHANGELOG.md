@@ -4,6 +4,16 @@ Todas as mudanças notáveis para o projeto **Athlon** serão documentadas neste
 
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [0.6.7] - 2026-06-23
+### Added
+- **Notificações In-App**: Sistema global de notificações integrado na Header (sininho).
+  - Alertas em tempo real sobre submissões de súmulas, aprovações, disputas e validações de administradores.
+  - Dropdown interativo com animações (Framer Motion) e sistema de leitura (marca como lido ao clicar e redireciona).
+- **Suporte a Light Mode e Dark Mode**: 
+  - Refatoração da arquitetura CSS com `next-themes` e variáveis customizadas (`@theme inline` do Tailwind v4).
+  - O sistema transiciona suavemente entre claro e escuro sem precisar de classes `dark:` em todos os componentes.
+  - Botão de alternância de tema no topo, acompanhado de animações no ícone (Sol/Lua).
+
 ## [0.6.6] - 2026-06-23
 ### Added
 - **Upload Direto com Cloudflare R2**: As imagens (como Avatares e Escudos) agora são enviadas diretamente do navegador para o Cloudflare R2 usando URLs Pre-assinadas (Presigned URLs), economizando processamento e banda do servidor.

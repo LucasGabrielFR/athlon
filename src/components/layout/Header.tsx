@@ -3,6 +3,7 @@ import { db } from '@/db';
 import { playerProfiles, modalities, notifications } from '@/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { NotificationBell } from './notification-bell';
+import { ThemeToggle } from './theme-toggle';
 
 export async function Header() {
   const session = await auth();
@@ -48,6 +49,7 @@ export async function Header() {
         )}
       </div>
       <div className="flex items-center gap-6">
+        <ThemeToggle />
         {userId && <NotificationBell initialNotifications={userNotifications} />}
         
         <form

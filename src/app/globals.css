@@ -13,6 +13,26 @@
   
   --primary: #00B4D8;
   --primary-foreground: #0A192F;
+  
+  --athlon-slate-dark: #0f172a;
+}
+
+.light {
+  --background: #F8FAFC;
+  --foreground: #0F172A;
+  
+  --athlon-navy: #F8FAFC;
+  --athlon-slate: #FFFFFF;
+  --athlon-slate-dark: #F1F5F9;
+  
+  --athlon-ice: #0F172A;
+  --athlon-azure: #0284C7;
+  
+  --card: #FFFFFF;
+  --card-foreground: #0F172A;
+  
+  --primary: #0284C7;
+  --primary-foreground: #FFFFFF;
 }
 
 @theme inline {
@@ -22,6 +42,7 @@
   --color-azure: var(--athlon-azure);
   --color-ice: var(--athlon-ice);
   --color-slate: var(--athlon-slate);
+  --color-slate-dark: var(--athlon-slate-dark);
   
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);

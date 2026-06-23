@@ -14,7 +14,7 @@ Diferente de sistemas estáticos, o Athlon funciona como uma **rede social de pe
 - **Escalabilidade:** Estrutura geográfica organizada por camadas (Global > Nacional > Estadual).
 - **Integridade (Súmulas Inteligentes):** Sistema avançado de validação de resultados de partidas (Súmulas) via comprovação visual (Screenshots), com regras dinâmicas definidas pela organização (Acordo Mútuo entre clubes, Validação Exclusiva por Admin ou Aprovação Simples). Suporte completo a estatísticas individuais.
 - **Dinamismo Competitivo:** Geração automática de tabelas temporárias (Round Robin) e Chaveamento Eliminatório (Mata-Mata) de forma dinâmica, com suporte a **Configurações Avançadas de Pontuação** e **Hierarquia de Desempate Visiva (Drag-and-Drop)**.
-- **Engajamento Social:** Feed interativo nas competições (curtidas e comentários) e mercado livre proativo de recrutamento de jogadores (Free Agents).
+- **Engajamento Social e Interface Dinâmica:** Feed interativo nas competições, sistema global de notificações in-app em tempo real, transição fluida entre Light/Dark Mode, e mercado livre proativo de recrutamento de jogadores (Free Agents).
 
 ---
 

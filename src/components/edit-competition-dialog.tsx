@@ -207,7 +207,7 @@ export function EditCompetitionDialog({
                                   value={req} 
                                   defaultChecked={existingScreenshotRequirements.includes(req)}
                                   disabled={isLocked && role !== 'admin'}
-                                  className="w-4 h-4 rounded border-slate-600 text-azure focus:ring-azure focus:ring-offset-slate-dark bg-slate-800 disabled:opacity-50" 
+                                  className="w-4 h-4 rounded border-slate-600 text-azure focus:ring-azure focus:ring-offset-slate-dark bg-slate-dark disabled:opacity-50" 
                                 />
                                 <span className="text-sm font-bold text-ice">{req}</span>
                               </label>

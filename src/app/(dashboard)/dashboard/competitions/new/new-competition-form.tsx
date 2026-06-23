@@ -471,7 +471,7 @@ export function NewCompetitionForm({
                     "Print do Lobby/Saguão"
                   ].map(req => (
                     <label key={req} className="flex items-center gap-3 bg-slate-dark p-3 rounded-xl border border-azure/10 cursor-pointer hover:border-azure/30 transition-colors">
-                      <input type="checkbox" name="screenshotRequirements" value={req} className="w-4 h-4 rounded border-slate-600 text-azure focus:ring-azure focus:ring-offset-slate-dark bg-slate-800" />
+                      <input type="checkbox" name="screenshotRequirements" value={req} className="w-4 h-4 rounded border-slate-600 text-azure focus:ring-azure focus:ring-offset-slate-dark bg-slate-dark" />
                       <span className="text-sm font-bold text-ice">{req}</span>
                     </label>
                   ))}
