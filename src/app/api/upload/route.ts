@@ -30,8 +30,12 @@ export async function POST(req: Request) {
     }
 
     // 4. Validação do diretório alvo (Prevenir directory traversal / injeção)
-    const allowedFolders = ['players', 'clubs', 'organizations', 'competitions', 'uploads'];
-    const safeFolder = allowedFolders.includes(folder) ? folder : 'uploads';
+    const allowedFolders = ['players', 'clubs', 'organizations', 'competitions', 'uploads', 'feed'];
+    let safeFolder = allowedFolders.includes(folder) ? folder : 'uploads';
+
+    if (folder === 'feed' && body.competitionId) {
+      safeFolder = `feed/comp_${body.competitionId}`;
+    }
 
     // 5. Gerar Presigned URL
     const { uploadUrl, fileKey, publicUrl } = await generateUploadUrl(

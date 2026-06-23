@@ -22,6 +22,7 @@ import { eq, and, notInArray, sql, inArray, desc, avg } from 'drizzle-orm';
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
+import { deleteFile } from '@/lib/storage';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -472,8 +473,9 @@ export async function createCompetitionPostAction(formData: FormData) {
   const { userId, role } = await requireSession();
   const competitionId = Number(formData.get('competitionId'));
   const content = (formData.get('content') as string)?.trim();
+  const mediaUrl = (formData.get('mediaUrl') as string) || null;
 
-  if (!content) return;
+  if (!content && !mediaUrl) return;
 
   await requireOrganizerOrOrganizationPresident(competitionId, userId, role);
 
@@ -481,10 +483,43 @@ export async function createCompetitionPostAction(formData: FormData) {
     competitionId,
     authorId: userId,
     type: 'post',
-    content,
+    content: content || '',
+    mediaUrl,
   });
 
   revalidatePath(`/dashboard/competitions/${competitionId}`);
+}
+
+export async function deleteCompetitionPostAction(formData: FormData) {
+  const { userId, role } = await requireSession();
+  const postId = Number(formData.get('postId'));
+
+  const post = await db.query.competitionPosts.findFirst({
+    where: eq(competitionPosts.id, postId),
+    with: { competition: true }
+  });
+
+  if (!post) throw new Error('Postagem não encontrada.');
+
+  const isOrganizer = post.competition.organizerId === userId || role === 'admin';
+  const isAuthor = post.authorId === userId;
+
+  if (!isOrganizer && !isAuthor) {
+    throw new Error('Acesso negado para deletar esta postagem.');
+  }
+
+  // Garbage Collection: Delete from Cloudflare R2
+  if (post.mediaUrl && post.mediaUrl.includes('r2.dev')) {
+    const urlParts = post.mediaUrl.split('/');
+    const fileKey = urlParts.slice(3).join('/'); // extracts "feed/comp_1/file.png"
+    if (fileKey) {
+      await deleteFile(fileKey).catch(console.error);
+    }
+  }
+
+  await db.delete(competitionPosts).where(eq(competitionPosts.id, postId));
+
+  revalidatePath(`/dashboard/competitions/${post.competitionId}`);
 }
 
 export async function togglePinPostAction(formData: FormData) {

@@ -243,6 +243,7 @@ export const competitionPosts = mysqlTable('competition_posts', {
   authorId: bigint('author_id', { mode: 'number', unsigned: true }).notNull(),
   type: varchar('type', { length: 20 }).notNull().default('post'), // 'post' | 'system'
   content: text('content').notNull(),
+  mediaUrl: varchar('media_url', { length: 500 }),
   isPinned: boolean('is_pinned').notNull().default(false),
   createdAt: timestamp('created_at').defaultNow(),
 }, (table) => [

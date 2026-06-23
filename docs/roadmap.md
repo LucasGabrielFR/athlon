@@ -58,9 +58,9 @@ Organizações, Elencos      Estatísticas e Troféus       Mercado Proativo    
 | :---: | :--- |
 | ✅ | **Feed Interativo:** Curtidas e comentários no feed da competição. |
 | ✅ | **Mercado Proativo:** Jogadores podem se marcar como "Buscando Clube" (Free Agent). |
-| 🚧 | **Infraestrutura Cloudflare R2:** Setup do bucket S3-compatible para armazenamento de mídia. |
-| 🚧 | **Uploads de Identidade:** Fotos de perfil, escudos de clubes, logos de organizações. |
-| 🚧 | **Camada PRO de Mídia:** Upload de imagens em posts e artes de elenco. |
+| ✅ | **Infraestrutura Cloudflare R2:** Setup do bucket S3-compatible para armazenamento de mídia. |
+| ✅ | **Uploads de Identidade:** Fotos de perfil, escudos de clubes, logos de organizações. |
+| ✅ | **Camada PRO de Mídia:** Upload de imagens em posts e artes de elenco. |
 | 🚧 | **Integridade por Imagem (PRO):** Anexos ("prints") na súmula das partidas para validação de resultados. |
 | 🚧 | **Notificações Integradas:** Alertas via Web Push/Email (convites, jogos, etc). |
 

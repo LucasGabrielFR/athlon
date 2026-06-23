@@ -10,10 +10,11 @@ interface ImageUploadProps {
   className?: string;
   label?: string;
   name?: string;
-  folder?: 'players' | 'clubs' | 'organizations' | 'competitions' | 'uploads';
+  folder?: 'players' | 'clubs' | 'organizations' | 'competitions' | 'uploads' | 'feed';
+  competitionId?: number;
 }
 
-export function ImageUpload({ onUploadSuccess, defaultImage, className = "", label = "Fazer upload de imagem", name, folder = 'uploads' }: ImageUploadProps) {
+export function ImageUpload({ onUploadSuccess, defaultImage, className = "", label = "Fazer upload de imagem", name, folder = 'uploads', competitionId }: ImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(defaultImage || null);
   const [publicUrl, setPublicUrl] = useState<string | null>(defaultImage || null);
@@ -36,79 +37,55 @@ export function ImageUpload({ onUploadSuccess, defaultImage, className = "", lab
     }
 
     setError(null);
+    setIsUploading(true);
 
-    // Apenas cria o preview local e salva o arquivo em estado
-    // O upload real acontecerá quando o usuário enviar o formulário
     const localUrl = URL.createObjectURL(file);
     setPreviewUrl(localUrl);
     setFileToUpload(file);
     setPublicUrl(null); // Reseta a URL pública anterior
-  };
 
-  React.useEffect(() => {
-    const form = fileInputRef.current?.closest("form");
-    if (!form) return;
+    try {
+      // 1. Pega URL assinada
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileName: file.name,
+          contentType: file.type,
+          folder: folder,
+          competitionId: competitionId,
+        }),
+      });
 
-    const handleFormSubmit = async (e: Event) => {
-      // Se não há um novo arquivo selecionado, permite o envio normal do form
-      if (!fileToUpload) return;
+      if (!res.ok) throw new Error("Erro ao obter link de upload");
+      const { uploadUrl, publicUrl: uploadedPublicUrl } = await res.json();
 
-      // Impede o formulário de ser enviado imediatamente
-      e.preventDefault();
+      // 2. Faz o PUT diretamente para o Cloudflare R2
+      const uploadRes = await fetch(uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
 
-      if (isUploading) return;
+      if (!uploadRes.ok) throw new Error("Erro ao enviar imagem para a nuvem");
 
-      setIsUploading(true);
-      setError(null);
+      // 3. Sucesso!
+      setPublicUrl(uploadedPublicUrl);
+      if (onUploadSuccess) onUploadSuccess(uploadedPublicUrl);
 
-      try {
-        // 1. Pega URL assinada
-        const res = await fetch("/api/upload", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            fileName: fileToUpload.name,
-            contentType: fileToUpload.type,
-            folder: folder,
-          }),
-        });
-
-        if (!res.ok) throw new Error("Erro ao obter link de upload");
-        const { uploadUrl, publicUrl: uploadedPublicUrl } = await res.json();
-
-        // 2. Faz o PUT diretamente para o Cloudflare R2
-        const uploadRes = await fetch(uploadUrl, {
-          method: "PUT",
-          headers: { "Content-Type": fileToUpload.type },
-          body: fileToUpload,
-        });
-
-        if (!uploadRes.ok) throw new Error("Erro ao enviar imagem para a nuvem");
-
-        // 3. Sucesso! Repassa a URL pública
-        setPublicUrl(uploadedPublicUrl);
-        setFileToUpload(null); // Limpa o arquivo para evitar loop no próximo submit
-        if (onUploadSuccess) onUploadSuccess(uploadedPublicUrl);
-
-        // Atualiza o input hidden no DOM imediatamente antes de re-submeter
-        if (name) {
-          const hiddenInput = document.getElementById(`hidden-${name}`) as HTMLInputElement;
-          if (hiddenInput) hiddenInput.value = uploadedPublicUrl;
-        }
-
-        // Re-submete o formulário programaticamente (agora com fileToUpload == null)
-        form.requestSubmit();
-
-      } catch (err) {
-        console.error(err);
-        setError("Falha no upload. Tente novamente.");
-        setIsUploading(false);
+      // Preenche o input oculto caso o React demore a reagir no submit
+      if (name) {
+        const hiddenInput = document.getElementById(`hidden-${name}`) as HTMLInputElement;
+        if (hiddenInput) hiddenInput.value = uploadedPublicUrl;
       }
-    };
-
-    form.addEventListener("submit", handleFormSubmit);
-    return () => form.removeEventListener("submit", handleFormSubmit);
-  }, [fileToUpload, isUploading, name, onUploadSuccess]);
+    } catch (err) {
+      console.error(err);
+      setError("Falha no upload. Tente novamente.");
+    } finally {
+      setIsUploading(false);
+      setFileToUpload(null);
+    }
+  };
 
   return (
     <div className={`relative flex flex-col items-center justify-center border-2 border-dashed border-slate-700 bg-slate-800/50 rounded-xl overflow-hidden group cursor-pointer transition-colors hover:border-blue-500 hover:bg-slate-800 ${className}`} onClick={() => fileInputRef.current?.click()}>

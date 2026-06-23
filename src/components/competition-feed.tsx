@@ -1,16 +1,20 @@
 'use client';
 
-import { createCompetitionPostAction, togglePinPostAction, addPostCommentAction, deletePostCommentAction, togglePostReactionAction } from '@/app/actions/competitions';
+import { createCompetitionPostAction, togglePinPostAction, deleteCompetitionPostAction, addPostCommentAction, deletePostCommentAction, togglePostReactionAction } from '@/app/actions/competitions';
 import { useState } from 'react';
-import { Pin, Send, Megaphone, Info, Heart, MessageCircle, Trash2 } from 'lucide-react';
+import { Pin, Send, Megaphone, Info, Heart, MessageCircle, Trash2, Image as ImageIcon } from 'lucide-react';
+import Image from 'next/image';
+import { ImageUpload } from '@/components/ui/image-upload';
 
 interface Post {
   id: number;
   type: string;
   content: string;
+  mediaUrl?: string | null;
   isPinned: boolean;
   createdAt: Date | null;
   author?: {
+    id: number;
     name: string | null;
   };
   comments?: {
@@ -38,6 +42,7 @@ export function CompetitionFeed({
   currentUserId: number | null; 
 }) {
   const [content, setContent] = useState('');
+  const [showImageUpload, setShowImageUpload] = useState(false);
 
   const sortedPosts = [...posts].sort((a, b) => {
     if (a.isPinned && !b.isPinned) return -1;
@@ -52,6 +57,7 @@ export function CompetitionFeed({
           action={async (formData) => {
             await createCompetitionPostAction(formData);
             setContent('');
+            setShowImageUpload(false);
           }}
           className="bg-slate border border-azure/20 p-4 rounded-2xl flex flex-col gap-3 group focus-within:border-azure transition-all"
         >
@@ -63,14 +69,36 @@ export function CompetitionFeed({
             placeholder="Publique um aviso ou atualização para os participantes..."
             className="bg-transparent text-ice text-sm placeholder:text-ice/20 outline-none resize-none min-h-[80px]"
           />
+          {showImageUpload && (
+            <div className="px-1 pb-2">
+              <ImageUpload 
+                name="mediaUrl" 
+                folder="feed" 
+                competitionId={competitionId} 
+                label="Anexar imagem (Opcional)" 
+                className="h-32" 
+              />
+            </div>
+          )}
           <div className="flex justify-between items-center bg-slate-dark/30 -mx-4 -mb-4 p-3 rounded-b-2xl border-t border-azure/10">
-            <span className="text-[10px] text-ice/40 italic">As postagens são visíveis para todos.</span>
+            <div className="flex items-center gap-3">
+              <button 
+                type="button" 
+                onClick={() => setShowImageUpload(!showImageUpload)} 
+                className={`transition-colors p-2 rounded-lg border ${showImageUpload ? 'bg-azure/10 border-azure/30 text-azure' : 'bg-slate/50 border-ice/5 text-ice/40 hover:text-azure hover:border-azure/20'}`}
+                title="Anexar Imagem"
+              >
+                <ImageIcon size={14} />
+              </button>
+              <span className="text-[10px] text-ice/40 italic hidden sm:block">As postagens são visíveis para todos.</span>
+            </div>
             <button 
               type="submit"
-              disabled={!content.trim()}
-              className="bg-azure hover:bg-azure-dark text-slate p-2 rounded-xl transition-all disabled:opacity-20 group-hover:scale-105"
+              disabled={!content.trim() && !showImageUpload}
+              className="bg-azure hover:bg-azure-dark text-slate p-2 px-4 rounded-xl transition-all disabled:opacity-20 group-hover:scale-105 flex items-center gap-2 font-bold text-xs"
             >
-              <Send size={16} />
+              <span>Publicar</span>
+              <Send size={14} />
             </button>
           </div>
         </form>
@@ -113,26 +141,49 @@ export function CompetitionFeed({
                 </div>
               </div>
 
-              {isOrganizer && post.type !== 'system' && (
-                <form action={togglePinPostAction}>
-                  <input type="hidden" name="postId" value={post.id} />
-                  <button 
-                    type="submit"
-                    className={`p-1.5 rounded-lg border transition-all ${
-                      post.isPinned 
-                        ? 'bg-azure text-slate border-azure' 
-                        : 'bg-slate-dark text-ice/30 border-ice/10 hover:border-azure/40 hover:text-azure'
-                    }`}
-                  >
-                    <Pin size={12} />
-                  </button>
-                </form>
-              )}
+              <div className="flex items-center gap-2">
+                {isOrganizer && post.type !== 'system' && (
+                  <form action={togglePinPostAction}>
+                    <input type="hidden" name="postId" value={post.id} />
+                    <button 
+                      type="submit"
+                      className={`p-1.5 rounded-lg border transition-all ${
+                        post.isPinned 
+                          ? 'bg-azure text-slate border-azure' 
+                          : 'bg-slate-dark text-ice/30 border-ice/10 hover:border-azure/40 hover:text-azure'
+                      }`}
+                    >
+                      <Pin size={12} />
+                    </button>
+                  </form>
+                )}
+                
+                {(isOrganizer || post.author?.id === currentUserId) && post.type !== 'system' && (
+                  <form action={deleteCompetitionPostAction}>
+                    <input type="hidden" name="postId" value={post.id} />
+                    <button 
+                      type="submit"
+                      title="Apagar Postagem"
+                      className="p-1.5 rounded-lg border bg-slate-dark text-red-400/50 border-red-500/10 hover:border-red-500/40 hover:text-red-400 hover:bg-red-500/5 transition-all"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </form>
+                )}
+              </div>
             </div>
 
-            <div className={`text-sm leading-relaxed ${post.type === 'system' ? 'text-ice/60 italic font-medium' : 'text-ice'}`}>
-              {post.content}
-            </div>
+            {post.content && (
+              <div className={`text-sm leading-relaxed ${post.type === 'system' ? 'text-ice/60 italic font-medium' : 'text-ice'}`}>
+                {post.content}
+              </div>
+            )}
+
+            {post.mediaUrl && (
+              <div className="mt-3 w-full rounded-xl overflow-hidden border border-azure/10 relative bg-navy/50" style={{ minHeight: '200px' }}>
+                <Image src={post.mediaUrl} alt="Imagem do post" width={800} height={600} className="w-full h-auto object-contain max-h-[600px]" unoptimized />
+              </div>
+            )}
 
             {/* Reactions & Comments Toggle */}
             {post.type !== 'system' && currentUserId && (
