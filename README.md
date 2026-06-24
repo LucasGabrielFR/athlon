@@ -27,6 +27,22 @@ Diferente de sistemas estáticos, o Athlon funciona como uma **rede social de pe
 
 ---
 
+## ✨ Funcionalidades em Destaque
+
+### 📸 Súmulas Inteligentes (Match Integrity)
+Acaba com os resultados "de boca". Organizadores podem exigir o envio obrigatório de imagens comprobatórias (como prints do placar final e das estatísticas do lobby). As imagens são armazenadas via **Cloudflare R2**. O resultado de uma partida só se torna oficial e entra para a classificação após ser aceito pelo adversário (Acordo Mútuo) ou validado por um Administrador.
+
+### 🌓 Interface Dinâmica e Notificações (Em Tempo Real)
+A plataforma reage ao usuário com um painel de notificações global que avisa sobre convites, submissões de adversários e atualizações do torneio. Tudo isso envelopado em uma UI premium com transição nativa e fluida entre **Light Mode e Dark Mode**.
+
+### 🧩 Motor de Competições e Chaveamento Automático
+O Presidente da Organização não precisa fazer contas manuais. O Athlon cria automaticamente chaves de torneio eliminatório (Bracket de Mata-Mata) e auto-progride as equipes vencedoras. Suporta configuração de pontuação granular (Vitória, Empate, Derrota) e regras de desempate drag-and-drop.
+
+### 🤝 Mercado Proativo (Free Agents)
+Jogadores que estão sem time podem entrar no "Mercado de Jogadores", marcar seu status como **Free Agent**, escrever um recado para possíveis recrutadores e expor seu rating e estatísticas individuais, funcionando como uma verdadeira rede profissional de E-sports e Esportes Tradicionais.
+
+---
+
 ## 🛠️ Stack Tecnológica
 
 O projeto utiliza uma stack moderna focada em performance e tipagem rigorosa:
@@ -79,7 +95,10 @@ Acesse `http://localhost:3000` para ver o Athlon em ação.
 ---
 
 ## 📄 Documentação Relacionada
-- [Roadmap de Desenvolvimento](roadmap.md)
+- [Documentação do Sistema](docs/documentacao_sistema.md)
+- [Requisitos e Casos de Uso](docs/requisitos_e_casos_de_uso.md)
+- [Casos de Teste (Plano de Validação)](docs/casos_de_teste.md)
+- [Roadmap de Desenvolvimento](docs/roadmap.md)
 - [Registro de Mudanças (Changelog)](CHANGELOG.md)
 
 ---

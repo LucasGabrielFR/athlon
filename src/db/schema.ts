@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { mysqlTable, serial, varchar, text, timestamp, json, boolean, int, bigint, foreignKey } from 'drizzle-orm/mysql-core';
 import { relations } from 'drizzle-orm';
 

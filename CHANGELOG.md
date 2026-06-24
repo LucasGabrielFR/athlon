@@ -4,6 +4,16 @@ Todas as mudanças notáveis para o projeto **Athlon** serão documentadas neste
 
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [0.6.8] - 2026-06-23
+### Added
+- **Plano de Casos de Teste (QA)**: Criado o arquivo `docs/casos_de_teste.md` com o plano de testes e cobertura ponta a ponta dos módulos centrais (Auth, Clubes, Competições, Súmulas, Comunicação).
+
+### Changed
+- **Documentação Master**: 
+  - `documentacao_sistema.md` atualizada com novo Diagrama Entidade-Relacionamento (ERD) e Diagrama de Sequência detalhando o motor de Súmulas Inteligentes (Match Integrity).
+  - `requisitos_e_casos_de_uso.md` aprimorada com fluxogramas visuais em Mermaid.js e instruções passo-a-passo para os fluxos principais (Gestão de Competição, Súmulas, Mercado Free Agent).
+  - `README.md` expandido para incluir uma nova seção de "Funcionalidades em Destaque", explicando claramente Súmulas Inteligentes, Notificações In-App, Motor de Competições e Mercado Proativo.
+
 ## [0.6.7] - 2026-06-23
 ### Added
 - **Notificações In-App**: Sistema global de notificações integrado na Header (sininho).

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Trophy, ArrowUpIcon, ArrowDownIcon, MinusIcon } from 'lucide-react';
+import { Trophy } from 'lucide-react';
 
 export interface TeamStanding {
   clubId: number;

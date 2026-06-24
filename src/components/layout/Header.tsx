@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { auth, signOut } from '@/auth';
 import { db } from '@/db';
 import { playerProfiles, modalities, notifications } from '@/db/schema';

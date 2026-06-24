@@ -89,6 +89,20 @@ athlon/
 | **Competitiva** | `clubs`, `competitions`, `matches`, `match_events` | Organizações, competições (regras em JSON), partidas e atômicos de jogo. |
 | **Integridade (PRO)** | `competition_screenshot_requirements`, `match_screenshots` | Motor de Súmulas Inteligentes. Mapeia exigências de imagens configuradas pela org e armazena os uploads enviados pelos clubes para validação (Acordo Mútuo ou Admin). |
 
+### 4.2 Diagrama Entidade-Relacionamento (Core)
+```mermaid
+erDiagram
+    users ||--o{ user_roles : "possui"
+    users ||--o{ players : "atua como"
+    organizations ||--o{ competitions : "organiza"
+    clubs ||--o{ competition_rosters : "inscreve"
+    competitions ||--o{ matches : "contém"
+    matches ||--o{ match_events : "registra (gols, cartões)"
+    matches ||--o{ match_screenshots : "valida com"
+    match_screenshots }o--|| competition_screenshot_requirements : "atende requisito"
+    clubs ||--o{ players : "contrata"
+```
+
 ---
 
 ## 5. Estrutura de Perfis (Roles)
@@ -117,6 +131,34 @@ Ele substitui resultados baseados apenas em confiança por um sistema auditável
    - A partida possui uma máquina de estados (`submissionStatus`): `pending`, `submitted_by_home`, `submitted_by_away`, `disputed`, `validated`.
    - As imagens são enviadas diretamente para o **Cloudflare R2**.
    - Em caso de Contestação (`disputed`), a validação é travada para intervenção do Admin.
+
+### 6.2 Diagrama de Sequência (Acordo Mútuo)
+```mermaid
+sequenceDiagram
+    actor PresClubeA as Presidente Clube A
+    actor PresClubeB as Presidente Clube B
+    participant Athlon as Sistema (Athlon)
+    participant R2 as Cloudflare R2
+    
+    PresClubeA->>Athlon: Preenche Placar e Anexa Prints
+    Athlon->>R2: Upload direto via Presigned URL
+    R2-->>Athlon: Retorna URL final da Imagem
+    Athlon-->>PresClubeA: Confirma Submissão (Status: submitted_by_home)
+    
+    Athlon->>PresClubeB: Envia Notificação (Seu adversário submeteu)
+    
+    PresClubeB->>Athlon: Acessa Partida e Analisa Prints
+    
+    alt Aceitar Resultado
+        PresClubeB->>Athlon: Clica em "Aceitar Resultado"
+        Athlon-->>Athlon: Status: validated
+        Athlon-->>Athlon: Atualiza Classificação e Estatísticas
+    else Contestar
+        PresClubeB->>Athlon: Clica em "Contestar"
+        Athlon-->>Athlon: Status: disputed
+        Athlon->>Admin: Notifica Admin para resolução
+    end
+```
 
 ---
 

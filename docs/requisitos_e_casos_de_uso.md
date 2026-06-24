@@ -79,31 +79,80 @@
 
 ### UC-01: Criação e Gestão de Competições
 **Ator:** Presidente de Organização
+
+Este caso de uso descreve o fluxo de fundação de um torneio, desde as configurações iniciais até a geração automática dos jogos e tabelas.
+
 **Fluxo Principal:**
-1. Cria a organização.
-2. Cria o torneio vinculado à organização, definindo regras (Pontos Corridos ou Mata-mata).
-3. Abre janelas de inscrição.
-4. Ao fechar as inscrições, clica em "Iniciar Torneio", o que gera a tabela automática de jogos.
-5. Valida súmulas das partidas.
+1. Cria a organização via Wizard interativo.
+2. Cria o torneio vinculado à organização, definindo regras, formato (Pontos Corridos ou Mata-mata) e critérios de desempate via arrastar-e-soltar.
+3. Abre janelas de inscrição para permitir que os Presidentes de Clube solicitem a entrada de suas equipes.
+4. Ao fechar as inscrições, o organizador clica em "Iniciar Torneio". O motor de competições gera automaticamente a tabela de partidas (Round Robin) ou a árvore do torneio (Bracket de Mata-mata).
+5. Durante o torneio, o organizador atua como validador de resultados caso haja disputas ou se a configuração exigir aprovação administrativa.
+
+**Diagrama de Fluxo:**
+```mermaid
+flowchart TD
+    A[Criar Organização] --> B[Criar Torneio]
+    B --> C[Configurar Regras e Formato]
+    C --> D[Abrir Inscrições]
+    D --> E{Clubes Inscritos?}
+    E -- Sim --> F[Fechar Inscrições]
+    F --> G[Iniciar Torneio]
+    G --> H[Gerar Tabelas e Chaves]
+    H --> I[Partidas Liberadas para Jogar]
+```
 
 ### UC-02: Envio e Validação de Súmula (Match Integrity)
 **Ator:** Presidente de Clube
+
+Este caso garante a confiabilidade dos dados da plataforma através do sistema de submissão de resultados baseados em evidências visuais (prints).
+
 **Fluxo Principal (Cenário: Acordo Mútuo):**
-1. Acessa a aba de partidas do torneio e acessa uma partida Específica.
-2. Inicia a partida. Durante o andamento, pode registrar eventos atômicos (gols, cartões).
-3. Após a partida, a aba "Súmula" exibe os requisitos de imagem exigidos pela Organização.
-4. O presidente preenche o placar e faz o upload (Presigned URL -> R2) das imagens comprobatórias e submete.
-5. O estado da partida muda para `submitted_by_home`.
-6. O Presidente do Clube rival acessa a partida, visualiza os prints anexados pelo primeiro, e clica em **Aceitar Resultado**.
-7. A partida ganha o status de `validated`, distribuindo os pontos na Classificação.
+1. O presidente acessa a aba de partidas do torneio e entra em uma partida específica que está "Pendente".
+2. Durante o jogo real, ele pode registrar eventos atômicos em tempo real na interface (ex: Gols, Cartões Amarelos).
+3. Após o encerramento do jogo real, a tela exibe os requisitos obrigatórios definidos pela Organização (ex: "Print do Placar", "Estatísticas do Time").
+4. O presidente preenche o placar final e faz o upload (Presigned URL para o Cloudflare R2) das imagens comprobatórias e submete a súmula.
+5. O estado da partida transiciona de `pending` para `submitted_by_home` (ou `away`).
+6. O Presidente do Clube rival recebe uma notificação, acessa a partida, visualiza os prints anexados pelo primeiro, e escolhe entre **Aceitar Resultado** ou **Contestar**.
+7. Se aceitar, a partida vai para `validated` e os pontos de prestígio, classificação e estatísticas são atualizados e publicados.
 
 **Fluxo Alternativo (Contestação):**
-1. No passo 6, se o rival não concordar com o placar/prints, ele clica em **Contestar (Disputar)**.
-2. O estado da partida muda para `disputed` e fica trancado, requerindo que o Admin visualize e resolva "Forçadamente".
+1. No passo 6, se o rival não concordar com o placar/prints ou houver irregularidades, ele clica em **Contestar (Disputar)**.
+2. O estado muda para `disputed`, bloqueando a validação para os clubes e exigindo a resolução por um Administrador ou Presidente da Organização.
 
-### UC-03: Exploração e Mercado
-**Ator:** Jogador ou Presidente de Clube
+**Diagrama de Fluxo:**
+```mermaid
+flowchart TD
+    A[Acessar Partida] --> B[Preencher Placar]
+    B --> C[Fazer Upload de Prints Obrigatórios]
+    C --> D[Submeter Súmula]
+    D --> E[Aguardar Validação Rival]
+    E --> F{Rival Analisa}
+    F -- Aceita --> G[Partida Validada]
+    F -- Contesta --> H[Partida Disputada]
+    G --> I[Atualiza Classificação]
+    H --> J[Admin Resolve Forçadamente]
+```
+
+### UC-03: Exploração e Mercado de Agentes Livres
+**Atores:** Jogador, Presidente de Clube
+
+Este fluxo incentiva o engajamento através de um mercado "vivo" de jogadores buscando oportunidades.
+
 **Fluxo Principal:**
-1. Presidente filtra jogadores no "Mercado de Jogadores" buscando a tag "Free Agent".
-2. Verifica estatísticas de performance do atleta.
-3. Envia convite de recrutamento para seu clube.
+1. **Jogador:** Acessa seu perfil e na aba de modalidade, ativa a chave "Buscando Clube (Free Agent)", podendo adicionar uma breve mensagem de apresentação.
+2. **Presidente:** Acessa o "Mercado de Jogadores" e utiliza os filtros (Modalidade, Posição) e marca o filtro "Free Agents".
+3. **Presidente:** O sistema destaca visualmente os jogadores com status "Free Agent".
+4. **Presidente:** Clica no card do jogador, verifica suas estatísticas e troféus em torneios anteriores.
+5. **Presidente:** Envia um convite de recrutamento direto para o jogador, que receberá um alerta no sino de notificações globais in-app.
+
+**Diagrama de Fluxo:**
+```mermaid
+flowchart LR
+    Jogador[Jogador] --> AtivarFA[Ativa 'Free Agent' no Perfil]
+    AtivarFA --> Mercado[Aparece Destacado no Mercado]
+    Presidente[Presidente de Clube] --> FiltraFA[Filtra por 'Buscando Clube']
+    FiltraFA --> Analisa[Analisa Estatísticas e Perfil]
+    Analisa --> Convite[Envia Convite via Sistema]
+    Convite --> Notificacao[Jogador Recebe Notificação in-app]
+```

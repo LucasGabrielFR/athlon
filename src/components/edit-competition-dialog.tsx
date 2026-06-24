@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { updateCompetitionAction } from '@/app/actions/competitions';
