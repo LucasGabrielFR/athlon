@@ -4,11 +4,11 @@ import { db } from '@/db';
 import { users, verificationTokens } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { hashPassword } from '@/lib/password';
-import { signIn } from '@/auth';
+import { signIn, auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+
 
 export async function googleSignInAction() {
   await signIn('google', { redirectTo: '/dashboard' });
@@ -56,6 +56,7 @@ export async function registerAction(formData: FormData) {
   
   if (process.env.RESEND_API_KEY) {
     try {
+      const resend = new Resend(process.env.RESEND_API_KEY);
       await resend.emails.send({
         from: 'Athlon <onboarding@resend.dev>', // Update with verified domain in production
         to: email,

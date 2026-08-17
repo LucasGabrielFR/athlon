@@ -66,10 +66,11 @@ export default async function RegisterPage({
         <input type="hidden" name="role" value={selectedRole} />
         
         <div>
-          <label className="block text-xs text-ice/60 mb-1 uppercase tracking-wider">
+          <label htmlFor="name" className="block text-xs text-ice/60 mb-1 uppercase tracking-wider">
             {selectedRole === 'org_president' ? 'Nome da Organização' : 'Nome Completo'}
           </label>
           <input
+            id="name"
             type="text"
             name="name"
             placeholder={selectedRole === 'org_president' ? 'Federação Paulista' : 'João Silva'}
@@ -80,8 +81,9 @@ export default async function RegisterPage({
 
         {selectedRole === 'player' && (
           <div>
-            <label className="block text-xs text-ice/60 mb-1 uppercase tracking-wider">Nickname (Opcional)</label>
+            <label htmlFor="nickname" className="block text-xs text-ice/60 mb-1 uppercase tracking-wider">Nickname (Opcional)</label>
             <input
+              id="nickname"
               type="text"
               name="nickname"
               placeholder="FalleN"
@@ -91,8 +93,9 @@ export default async function RegisterPage({
         )}
 
         <div>
-          <label className="block text-xs text-ice/60 mb-1 uppercase tracking-wider">E-mail</label>
+          <label htmlFor="email" className="block text-xs text-ice/60 mb-1 uppercase tracking-wider">E-mail</label>
           <input
+            id="email"
             type="email"
             name="email"
             placeholder={selectedRole === 'org_president' ? 'contato@org.com' : 'seu@email.com'}
@@ -102,8 +105,9 @@ export default async function RegisterPage({
         </div>
 
         <div>
-          <label className="block text-xs text-ice/60 mb-1 uppercase tracking-wider">Senha</label>
+          <label htmlFor="password" className="block text-xs text-ice/60 mb-1 uppercase tracking-wider">Senha</label>
           <input
+            id="password"
             type="password"
             name="password"
             placeholder="••••••••"
