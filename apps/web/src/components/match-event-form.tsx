@@ -53,6 +53,7 @@ export function MatchEventForm({
 
       <form action={async (formData) => { await recordMatchEventAction(formData); }} className="space-y-6">
         <input type="hidden" name="matchId" value={matchId} />
+        <input type="hidden" name="competitionId" value={compId} />
         
         <div className="space-y-2">
           <label className="text-[9px] font-black text-azure uppercase tracking-widest">Equipe</label>

@@ -156,19 +156,45 @@ async function runSeed() {
           const s1 = state === 'finished' ? 'finished' : 'finished';
           const [m1] = await db.insert(schema.matches).values({
             competitionId: compId, round: 1, stage: 'knockout', homeRegistrationId: regs[0].id, awayRegistrationId: regs[1].id,
-            status: s1, homeScore: 2, awayScore: 0
+            status: s1, homeScore: 2, awayScore: 0, metadata: { bracketNode: 2 }
           });
           const [m2] = await db.insert(schema.matches).values({
             competitionId: compId, round: 1, stage: 'knockout', homeRegistrationId: regs[2].id, awayRegistrationId: regs[3].id,
-            status: s1, homeScore: 1, awayScore: 2
+            status: s1, homeScore: 1, awayScore: 2, metadata: { bracketNode: 3 }
           });
           
-          // Final (somente se não for running ou se já passou pra próxima)
-          const fStatus = state === 'finished' ? 'finished' : 'scheduled';
+          // Final
+          const m1Id = (m1 as any).insertId;
+          const m2Id = (m2 as any).insertId;
+          
           await db.insert(schema.matches).values({
-            competitionId: compId, round: 2, stage: 'knockout', homeRegistrationId: regs[0].id, awayRegistrationId: regs[3].id,
-            status: fStatus, homeScore: state === 'finished' ? 3 : 0, awayScore: state === 'finished' ? 1 : 0
+            competitionId: compId, round: 2, stage: 'knockout', homeRegistrationId: regs[0].id, awayRegistrationId: regs[3].id, // 0 ganhou a primeira, 3 ganhou a segunda
+            status: state === 'finished' ? 'finished' : 'scheduled', homeScore: state === 'finished' ? 3 : 0, awayScore: state === 'finished' ? 1 : 0, metadata: { bracketNode: 1 }
           });
+        } else if (format === 'groups_knockout') {
+          // Atualizar regs com groupId
+          await db.update(schema.competitionRegistrations).set({ groupId: '1' }).where(eq(schema.competitionRegistrations.id, regs[0].id));
+          await db.update(schema.competitionRegistrations).set({ groupId: '1' }).where(eq(schema.competitionRegistrations.id, regs[1].id));
+          await db.update(schema.competitionRegistrations).set({ groupId: '2' }).where(eq(schema.competitionRegistrations.id, regs[2].id));
+          await db.update(schema.competitionRegistrations).set({ groupId: '2' }).where(eq(schema.competitionRegistrations.id, regs[3].id));
+
+          // Matches da fase de grupos (sempre finished para podermos testar o gerador de mata-mata se active, ou já ver a árvore se finished)
+          await db.insert(schema.matches).values({
+            competitionId: compId, round: 1, stage: 'groups', homeRegistrationId: regs[0].id, awayRegistrationId: regs[1].id,
+            status: 'finished', homeScore: 2, awayScore: 0
+          });
+          await db.insert(schema.matches).values({
+            competitionId: compId, round: 1, stage: 'groups', homeRegistrationId: regs[2].id, awayRegistrationId: regs[3].id,
+            status: 'finished', homeScore: 1, awayScore: 1
+          });
+
+          if (state === 'finished') {
+            // Gerar mata-mata falso
+            await db.insert(schema.matches).values({
+              competitionId: compId, round: 1, stage: 'knockout', homeRegistrationId: regs[0].id, awayRegistrationId: regs[2].id,
+              status: 'finished', homeScore: 3, awayScore: 0, metadata: { bracketNode: 1 }
+            });
+          }
         }
       }
     }

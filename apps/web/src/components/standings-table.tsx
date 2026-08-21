@@ -19,9 +19,11 @@ export interface TeamStanding {
 
 interface StandingsTableProps {
   standings: TeamStanding[];
+  format?: string;
+  advancingTeams?: number;
 }
 
-export function StandingsTable({ standings }: StandingsTableProps) {
+export function StandingsTable({ standings, format = 'league', advancingTeams = 0 }: StandingsTableProps) {
   return (
     <div className="bg-slate border border-azure/10 rounded-[2.5rem] overflow-hidden shadow-2xl">
       <div className="overflow-x-auto">
@@ -45,10 +47,12 @@ export function StandingsTable({ standings }: StandingsTableProps) {
               <tr key={team.clubId} className="group hover:bg-azure/5 transition-colors">
                 <td className="px-6 py-6 whitespace-nowrap">
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[11px] font-black italic shadow-inner ${
-                    index === 0 ? 'bg-yellow-500/20 text-yellow-500 border border-yellow-500/30' :
-                    index === 1 ? 'bg-slate-300/20 text-slate-300 border border-slate-300/30' :
-                    index === 2 ? 'bg-amber-600/20 text-amber-600 border border-amber-600/30' :
-                    'bg-slate-dark text-ice/40 border border-azure/10'
+                    format === 'groups_knockout' 
+                      ? (index < advancingTeams ? 'bg-emerald-500/20 text-emerald-500 border border-emerald-500/30' : 'bg-slate-dark text-ice/40 border border-azure/10')
+                      : (index === 0 ? 'bg-yellow-500/20 text-yellow-500 border border-yellow-500/30' :
+                         index === 1 ? 'bg-slate-300/20 text-slate-300 border border-slate-300/30' :
+                         index === 2 ? 'bg-amber-600/20 text-amber-600 border border-amber-600/30' :
+                         'bg-slate-dark text-ice/40 border border-azure/10')
                   }`}>
                     {index + 1}
                   </div>

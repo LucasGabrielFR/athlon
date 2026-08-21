@@ -586,6 +586,7 @@ export const matchesRelations = relations(matches, ({ one, many }) => ({
     relationName: 'match_awayRegistration',
   }),
   events: many(matchEvents),
+  screenshots: many(matchScreenshots),
 }));
 
 export const matchEventsRelations = relations(matchEvents, ({ one }) => ({

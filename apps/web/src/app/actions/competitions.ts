@@ -42,6 +42,15 @@ export async function approveRegistrationAction(formData: FormData) {
   } catch(e) {}
 }
 
+export async function rejectRegistrationAction(formData: FormData) {
+  const compId = formData.get('competitionId');
+  const regId = formData.get('registrationId');
+  try {
+    await fetchApi(`/competitions/${compId}/registrations/${regId}/reject`, { method: 'PUT' });
+    revalidatePath(`/dashboard/competitions/${compId}`);
+  } catch(e) {}
+}
+
 export async function addToRosterAction(formData: FormData) {
   const compId = formData.get('competitionId');
   const regId = formData.get('registrationId');
@@ -102,6 +111,14 @@ export async function generateMatchesAction(formData: FormData) {
   const compId = formData.get('competitionId');
   try {
     await fetchApi(`/competitions/${compId}/generate-matches`, { method: 'POST' });
+    revalidatePath(`/dashboard/competitions/${compId}`);
+  } catch(e) {}
+}
+
+export async function generateKnockoutAction(formData: FormData) {
+  const compId = formData.get('competitionId');
+  try {
+    await fetchApi(`/competitions/${compId}/generate-knockout`, { method: 'POST' });
     revalidatePath(`/dashboard/competitions/${compId}`);
   } catch(e) {}
 }

@@ -38,6 +38,10 @@ export function MatchReportForm({
     (match.submissionStatus === 'submitted_by_away' && isHomeManager)
   );
 
+  const opponentSubmission = match.submissionStatus === 'submitted_by_away' 
+    ? match.metadata?.awaySubmission 
+    : match.metadata?.homeSubmission;
+
   return (
     <div className="bg-slate border border-azure/10 rounded-3xl p-8 space-y-8">
       <div className="flex items-center gap-3">
@@ -52,6 +56,20 @@ export function MatchReportForm({
         </div>
       </div>
 
+      {match.submissionStatus === 'disputed' && (
+        <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-6">
+          <div className="flex items-start gap-4">
+            <AlertTriangle className="text-red-500 shrink-0" />
+            <div>
+              <h4 className="text-sm font-bold text-red-500">Resultado em Disputa</h4>
+              <p className="text-xs text-ice/60 mt-1">
+                Os times não entraram em acordo sobre o placar. Um administrador irá analisar as provas enviadas e definir o resultado oficial em breve.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showApprovalOptions ? (
         <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-6 space-y-6">
           <div className="flex items-start gap-4">
@@ -59,7 +77,7 @@ export function MatchReportForm({
             <div>
               <h4 className="text-sm font-bold text-amber-500">Súmula enviada pelo adversário</h4>
               <p className="text-xs text-ice/60 mt-1">
-                O adversário reportou que o placar foi: {match.homeScore} x {match.awayScore}.
+                O adversário reportou que o placar foi: {opponentSubmission?.homeScore ?? 0} x {opponentSubmission?.awayScore ?? 0}.
                 Verifique as imagens anexadas abaixo e confirme se o resultado é verdadeiro.
               </p>
             </div>
@@ -80,12 +98,16 @@ export function MatchReportForm({
           <div className="flex gap-4">
             <form action={async (data) => { await acceptMatchSubmissionAction(data); }} className="flex-1">
               <input type="hidden" name="matchId" value={match.id} />
+              <input type="hidden" name="competitionId" value={comp.id} />
+              <input type="hidden" name="homeScore" value={opponentSubmission?.homeScore ?? 0} />
+              <input type="hidden" name="awayScore" value={opponentSubmission?.awayScore ?? 0} />
               <button type="submit" className="w-full bg-green-500 hover:bg-green-600 text-slate font-black py-4 rounded-xl uppercase tracking-widest text-[10px] transition-all">
                 Confirmar Resultado
               </button>
             </form>
             <form action={async (data) => { await disputeMatchSubmissionAction(data); }} className="flex-1">
               <input type="hidden" name="matchId" value={match.id} />
+              <input type="hidden" name="competitionId" value={comp.id} />
               <button type="submit" className="w-full bg-red-500 hover:bg-red-600 text-slate font-black py-4 rounded-xl uppercase tracking-widest text-[10px] transition-all">
                 Contestar (Disputar)
               </button>
@@ -95,6 +117,7 @@ export function MatchReportForm({
       ) : (
         <form action={async (data) => { await submitMatchReportAction(data); }} className="space-y-8">
           <input type="hidden" name="matchId" value={match.id} />
+          <input type="hidden" name="competitionId" value={comp.id} />
 
           {/* Score Input */}
           <div className="grid grid-cols-2 gap-6 items-center">
@@ -170,7 +193,17 @@ export function MatchReportForm({
 
           {isAdmin && match.submissionStatus !== 'validated' && (
              <div className="pt-4 border-t border-azure/10">
-                <button type="submit" name="forceValidate" value="true" className="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-slate font-black py-4 rounded-2xl uppercase tracking-[0.2em] shadow-xl transition-all">
+                <button 
+                  type="submit" 
+                  formAction={async (data) => {
+                     // Add force action field
+                     const newData = new FormData();
+                     for (const [k, v] of data.entries()) newData.append(k, v);
+                     newData.append('action', 'force_validate');
+                     await acceptMatchSubmissionAction(newData); // reusing endpoint
+                  }}
+                  className="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-slate font-black py-4 rounded-2xl uppercase tracking-[0.2em] shadow-xl transition-all"
+                >
                   Validar Forçadamente (Admin)
                 </button>
              </div>

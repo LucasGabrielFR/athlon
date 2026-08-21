@@ -1,7 +1,7 @@
 import { auth } from '@/auth';
 import { notFound } from 'next/navigation';
 import { fetchApi } from '@/lib/api';
-import { registerClubAction, approveRegistrationAction, deleteCompetitionAction, deactivateCompetitionAction, generateMatchesAction, validateMatchAction } from '@/app/actions/competitions';
+import { registerClubAction, approveRegistrationAction, rejectRegistrationAction, deleteCompetitionAction, deactivateCompetitionAction, generateMatchesAction, generateKnockoutAction, validateMatchAction } from '@/app/actions/competitions';
 import Link from 'next/link';
 import { ConfirmButton } from '@/components/confirm-button';
 import { CompetitionFeed } from '@/components/competition-feed';
@@ -130,7 +130,7 @@ export default async function CompetitionDetailPage({
             Classificação
           </Link>
         )}
-        {comp.status === 'active' && (comp.format === 'knockout' || comp.format === 'groups_knockout') && (
+        {comp.status === 'active' && (comp.format === 'knockout' || (comp.format === 'groups_knockout' && comp.matches.some((m: any) => m.stage === 'knockout'))) && (
           <Link 
             href={`?tab=bracket`}
             className={`flex items-center gap-2 px-6 py-3 rounded-[1rem] transition-all font-black text-[10px] uppercase tracking-widest ${
@@ -371,7 +371,7 @@ export default async function CompetitionDetailPage({
             </div>
           )}
 
-          {tab === 'bracket' && !!comp.knockoutConfig && (
+          {tab === 'bracket' && (
             <div className="space-y-8">
               <div className="mb-4">
                 <h3 className="text-2xl font-black text-ice italic tracking-tight">Chaveamento</h3>
@@ -394,7 +394,7 @@ export default async function CompetitionDetailPage({
               </div>
               
               {groups.map((gId, i) => {
-                const groupStandings = allStandings.filter(s => s.groupId === gId);
+                const groupStandings = allStandings.filter(s => String(s.groupId) === String(gId));
                 return (
                   <div key={gId} className="space-y-4">
                     {comp.format === 'groups_knockout' && (
@@ -403,7 +403,11 @@ export default async function CompetitionDetailPage({
                         <h4 className="text-sm font-black text-ice italic uppercase tracking-[0.2em]">Grupo {gId}</h4>
                       </div>
                     )}
-                    <StandingsTable standings={groupStandings} />
+                    <StandingsTable 
+                      standings={groupStandings} 
+                      format={comp.format}
+                      advancingTeams={(comp.groupsConfig as any)?.advancingPerGroup || 0}
+                    />
                   </div>
                 );
               })}
@@ -446,8 +450,40 @@ export default async function CompetitionDetailPage({
                           <div className="pt-2">
                             <StartTournamentButton 
                               competitionId={compId}
-                              disabled={comp.status !== 'registration' || allRegistrations.filter(r => r.status === 'approved').length < 2}
+                              disabled={comp.status !== 'registration' || allRegistrations.filter(r => r.status === 'approved').length < 2 || allRegistrations.filter(r => r.status === 'pending').length > 0}
                             />
+                            {allRegistrations.filter(r => r.status === 'pending').length > 0 && (
+                              <p className="text-[10px] text-amber-500 font-black uppercase tracking-widest text-center mt-3 italic">
+                                Existem inscrições pendentes
+                              </p>
+                            )}
+                          </div>
+                        )}
+                        {comp.status === 'active' && comp.format === 'groups_knockout' && (
+                          <div className="pt-2 border-t border-azure/10 mt-2">
+                            {comp.matches.filter((m: any) => m.stage === 'knockout').length === 0 ? (
+                              <form action={generateKnockoutAction}>
+                                <input type="hidden" name="competitionId" value={compId} />
+                                <button 
+                                  type="submit"
+                                  disabled={comp.matches.filter((m: any) => m.stage === 'groups').some((m: any) => m.status !== 'finished')}
+                                  className="w-full bg-azure text-slate py-4 rounded-2xl font-black uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(0,163,255,0.3)] disabled:opacity-50 disabled:pointer-events-none"
+                                >
+                                  Finalizar Grupos e Gerar Mata-Mata
+                                </button>
+                                {comp.matches.filter((m: any) => m.stage === 'groups').some((m: any) => m.status !== 'finished') && (
+                                  <p className="text-[10px] text-amber-500 font-black uppercase tracking-widest text-center mt-3 italic">
+                                    Conclua todos os jogos dos grupos primeiro
+                                  </p>
+                                )}
+                              </form>
+                            ) : (
+                              <div className="bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-2xl text-center">
+                                <p className="text-[10px] text-emerald-500 font-black uppercase tracking-widest italic">
+                                  Mata-Mata Gerado com Sucesso
+                                </p>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -472,10 +508,18 @@ export default async function CompetitionDetailPage({
                         <Users size={18} className="text-azure" />
                         <span className="text-sm text-ice font-black italic">{reg.club.name}</span>
                       </div>
-                      <form action={approveRegistrationAction}>
-                        <input type="hidden" name="registrationId" value={reg.id} />
-                        <button className="text-[10px] bg-emerald-500 text-slate px-6 py-2 rounded-xl font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/20 hover:scale-105 active:scale-95 italic">Aprovar Equipe</button>
-                      </form>
+                      <div className="flex items-center gap-2">
+                        <form action={rejectRegistrationAction}>
+                          <input type="hidden" name="competitionId" value={compId} />
+                          <input type="hidden" name="registrationId" value={reg.id} />
+                          <button className="text-[10px] bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-slate px-6 py-2 rounded-xl font-black uppercase tracking-widest transition-all shadow-lg hover:shadow-red-500/20 hover:scale-105 active:scale-95 italic border border-red-500/20 hover:border-red-500">Recusar</button>
+                        </form>
+                        <form action={approveRegistrationAction}>
+                          <input type="hidden" name="competitionId" value={compId} />
+                          <input type="hidden" name="registrationId" value={reg.id} />
+                          <button className="text-[10px] bg-emerald-500 text-slate px-6 py-2 rounded-xl font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/20 hover:scale-105 active:scale-95 italic">Aprovar Equipe</button>
+                        </form>
+                      </div>
                     </div>
                   ))}
                   {allRegistrations.filter(r => r.status === 'pending').length === 0 && (

@@ -45,6 +45,8 @@ export class CompetitionsController {
     return this.competitionsService.createCompetition(req.user.sub, body);
   }
 
+
+
   @Post(':id/registrations')
   async registerClub(@Param('id', ParseIntPipe) id: number, @Request() req: any, @Body() body: any) {
     return this.competitionsService.registerClub(id, req.user.sub, body);
@@ -55,7 +57,15 @@ export class CompetitionsController {
     @Param('id', ParseIntPipe) id: number,
     @Param('regId', ParseIntPipe) regId: number
   ) {
-    return this.competitionsService.approveRegistration(id, regId);
+    return this.competitionsService.updateRegistrationStatus(id, regId, 'approved');
+  }
+
+  @Put(':id/registrations/:regId/reject')
+  async rejectRegistration(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('regId', ParseIntPipe) regId: number
+  ) {
+    return this.competitionsService.updateRegistrationStatus(id, regId, 'rejected');
   }
 
   @Post(':id/registrations/:regId/roster')
@@ -148,5 +158,10 @@ export class CompetitionsController {
     @Body('status') status: string
   ) {
     return this.competitionsService.updateCompetitionStatus(id, status);
+  }
+
+  @Post(':id/generate-knockout')
+  async generateKnockout(@Param('id', ParseIntPipe) id: number) {
+    return this.competitionsService.generateKnockoutFromGroups(id);
   }
 }
