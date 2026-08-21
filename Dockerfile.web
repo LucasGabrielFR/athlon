@@ -1,0 +1,47 @@
+FROM node:20-slim AS base
+# Instalar pnpm se precisar, porém Next js 14 suporta npm normal
+# Habilitar corepack
+RUN corepack enable
+
+FROM base AS builder
+# Instala turbo globalmente
+RUN npm i -g turbo
+WORKDIR /app
+COPY . .
+# Cria prune do monorepo focado no web
+RUN turbo prune web --docker
+
+FROM base AS installer
+RUN apt-get update && apt-get install -y libc6 && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY .gitignore .gitignore
+COPY --from=builder /app/out/json/ .
+# Delete lockfile created by turbo prune to force linux native modules
+RUN rm -f package-lock.json && npm install
+
+COPY --from=builder /app/out/full/ .
+ENV DATABASE_URL="mysql://dummy:dummy@localhost:3306/dummy"
+ENV AUTH_SECRET="dummy_secret_for_build_so_it_doesnt_crash"
+RUN npx turbo run build --filter=web
+
+FROM base AS runner
+WORKDIR /app
+
+# Não run user as root
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+# Set correct permission for next.js
+USER nextjs
+
+COPY --from=installer /app/apps/web/next.config.ts .
+COPY --from=installer /app/apps/web/package.json .
+COPY --from=installer --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
+COPY --from=installer --chown=nextjs:nodejs /app/apps/web/.next/static ./apps/web/.next/static
+COPY --from=installer --chown=nextjs:nodejs /app/apps/web/public ./apps/web/public
+
+EXPOSE 3000
+
+ENV PORT 3000
+
+CMD ["node", "apps/web/server.js"]

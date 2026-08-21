@@ -1,11 +1,8 @@
-Dockerfile
-.dockerignore
 node_modules
-npm-debug.log
-README.md
 .next
 .git
-.env
-.env.*
-!.env.example
-tmp
+.turbo
+apps/*/node_modules
+apps/*/.next
+dist
+out

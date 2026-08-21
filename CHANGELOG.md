@@ -4,6 +4,11 @@ Todas as mudanças notáveis para o projeto **Athlon** serão documentadas neste
 
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [0.6.9] - 2026-08-16
+### Changed
+- **Landing Page Dinâmica**: Os botões de ação ("Acessar", "Criar Conta", "Começar Agora") da página inicial agora verificam o estado de autenticação (sessão do usuário). Caso o usuário já esteja logado, os botões são automaticamente transformados para redirecionar diretamente para o Dashboard, melhorando a UX e evitando a navegação redundante para telas de login.
+
+
 ## [0.6.8] - 2026-06-23
 ### Added
 - **Plano de Casos de Teste (QA)**: Criado o arquivo `docs/casos_de_teste.md` com o plano de testes e cobertura ponta a ponta dos módulos centrais (Auth, Clubes, Competições, Súmulas, Comunicação).

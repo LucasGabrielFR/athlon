@@ -1,11 +1,10 @@
-import { db } from '../src/db';
-import { users, clubs, clubMembers, modalities, positions, playerModalities, organizations, competitions, competitionRegistrations, competitionRosters, statTypes } from '../src/db/schema';
+import { db } from '../apps/api/src/db';
+import { users, clubs, clubMembers, modalities, positions, playerModalities, organizations, competitions, competitionRegistrations, competitionRosters, statTypes } from '../apps/api/src/db/schema';
 import { eq, and } from 'drizzle-orm';
-import * as crypto from 'crypto';
+import * as bcrypt from 'bcrypt';
 
 async function hashPassword(password: string): Promise<string> {
-  const hash = crypto.createHash('sha256').update(password).digest('hex');
-  return hash;
+  return await bcrypt.hash(password, 10);
 }
 
 const CLUB_NAMES = [
