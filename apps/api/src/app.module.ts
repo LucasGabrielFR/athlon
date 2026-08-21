@@ -7,6 +7,7 @@ import { UsersModule } from './users/users.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { ClubsModule } from './clubs/clubs.module';
 import { ModalitiesModule } from './modalities/modalities.module';
+import { CompetitionsModule } from './competitions/competitions.module';
 
 @Module({
   imports: [
@@ -16,8 +17,18 @@ import { ModalitiesModule } from './modalities/modalities.module';
     OrganizationsModule,
     ClubsModule,
     ModalitiesModule,
+    CompetitionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule {
+  configure(consumer: import('@nestjs/common').MiddlewareConsumer) {
+    consumer
+      .apply((req: any, res: any, next: () => void) => {
+        console.log('HTTP REQ:', req.method, req.originalUrl);
+        next();
+      })
+      .forRoutes('*');
+  }
+}

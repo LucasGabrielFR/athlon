@@ -478,13 +478,17 @@ export const playerModalities = mysqlTable('player_modalities', {
 // RELATIONS
 // ──────────────────────────────────────────
 
-export const usersRelations = relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ one, many }) => ({
   memberships: many(clubMembers),
   invitations: many(clubInvitations),
   presidedClubs: many(clubs),
   competitionPosts: many(competitionPosts),
   competitionPostComments: many(competitionPostComments),
   competitionPostReactions: many(competitionPostReactions),
+  playerProfile: one(playerProfiles, {
+    fields: [users.id],
+    references: [playerProfiles.userId],
+  }),
 }));
 
 export const clubsRelations = relations(clubs, ({ one, many }) => ({
@@ -807,3 +811,36 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
     references: [users.id],
   }),
 }));
+
+export const playerProfilesRelations = relations(playerProfiles, ({ one }) => ({
+  user: one(users, {
+    fields: [playerProfiles.userId],
+    references: [users.id],
+  }),
+  activeModality: one(modalities, {
+    fields: [playerProfiles.activeModalityId],
+    references: [modalities.id],
+  }),
+}));
+
+export const accountsRelations = relations(accounts, ({ one }) => ({
+  user: one(users, {
+    fields: [accounts.userId],
+    references: [users.id],
+  }),
+}));
+
+export const sessionsRelations = relations(sessions, ({ one }) => ({
+  user: one(users, {
+    fields: [sessions.userId],
+    references: [users.id],
+  }),
+}));
+
+export const matchScreenshotsRelations = relations(matchScreenshots, ({ one }) => ({
+  match: one(matches, {
+    fields: [matchScreenshots.matchId],
+    references: [matches.id],
+  }),
+}));
+

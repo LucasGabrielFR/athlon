@@ -20,13 +20,13 @@ export class ClubsController {
   }
 
   @Get(':id/details')
-  async getClubDetails(@Param('id', ParseIntPipe) id: number) {
-    return this.clubsService.getClubDetails(id);
+  async getClubDetails(@Request() req: any, @Param('id', ParseIntPipe) id: number) {
+    return this.clubsService.getClubDetails(id, req.user?.sub);
   }
 
   @Post()
   async createClub(@Request() req: any, @Body() data: any) {
-    return this.clubsService.createClub(req.user.id, data);
+    return this.clubsService.createClub(req.user.sub, data);
   }
 
   @Post(':id/invites')
@@ -35,7 +35,7 @@ export class ClubsController {
     @Param('id', ParseIntPipe) clubId: number,
     @Body() data: any
   ) {
-    return this.clubsService.sendInvite(clubId, req.user.id, data);
+    return this.clubsService.sendInvite(clubId, req.user.sub, data);
   }
 
   @Post(':id/requests')
@@ -44,27 +44,27 @@ export class ClubsController {
     @Param('id', ParseIntPipe) clubId: number,
     @Body() data: any
   ) {
-    return this.clubsService.requestJoin(clubId, req.user.id, data);
+    return this.clubsService.requestJoin(clubId, req.user.sub, data);
   }
 
   @Put('invites/:id/accept')
   async acceptInvite(@Request() req: any, @Param('id', ParseIntPipe) id: number) {
-    return this.clubsService.respondToInvitation(id, req.user.id, true);
+    return this.clubsService.respondToInvitation(id, req.user.sub, true);
   }
 
   @Put('invites/:id/reject')
   async rejectInvite(@Request() req: any, @Param('id', ParseIntPipe) id: number) {
-    return this.clubsService.respondToInvitation(id, req.user.id, false);
+    return this.clubsService.respondToInvitation(id, req.user.sub, false);
   }
 
   @Put('requests/:id/accept')
   async acceptRequest(@Request() req: any, @Param('id', ParseIntPipe) id: number) {
-    return this.clubsService.respondToJoinRequest(id, req.user.id, true);
+    return this.clubsService.respondToJoinRequest(id, req.user.sub, true);
   }
 
   @Put('requests/:id/reject')
   async rejectRequest(@Request() req: any, @Param('id', ParseIntPipe) id: number) {
-    return this.clubsService.respondToJoinRequest(id, req.user.id, false);
+    return this.clubsService.respondToJoinRequest(id, req.user.sub, false);
   }
 
   @Delete(':clubId/members/:memberId')
@@ -73,7 +73,7 @@ export class ClubsController {
     @Param('clubId', ParseIntPipe) clubId: number,
     @Param('memberId', ParseIntPipe) memberId: number
   ) {
-    return this.clubsService.dismissMember(clubId, memberId, req.user.id);
+    return this.clubsService.dismissMember(clubId, memberId, req.user.sub);
   }
 
   @Delete(':clubId/leave')
@@ -81,6 +81,6 @@ export class ClubsController {
     @Request() req: any,
     @Param('clubId', ParseIntPipe) clubId: number
   ) {
-    return this.clubsService.leaveClub(clubId, req.user.id);
+    return this.clubsService.leaveClub(clubId, req.user.sub);
   }
 }

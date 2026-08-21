@@ -38,7 +38,7 @@ export class ClubsService {
     };
   }
 
-  async getClubDetails(clubId: number) {
+  async getClubDetails(clubId: number, reqUserId?: number) {
     const club = await db.query.clubs.findFirst({
       where: eq(clubs.id, clubId),
       with: {
@@ -65,7 +65,68 @@ export class ClubsService {
     });
 
     if (!club) throw new NotFoundException('Club not found');
-    return club;
+
+    const isPresident = reqUserId && club.presidentId === reqUserId;
+
+    const formattedMembers = club.members.map((m: any) => ({
+      memberId: m.id,
+      userId: m.user.id,
+      userName: m.user.name,
+      userNickname: m.user.nickname,
+      role: m.role,
+      modalityName: club.modality?.name,
+      primaryPosition: null
+    }));
+
+    let joinRequests: any[] = [];
+    let outgoingInvites: any[] = [];
+    
+    if (isPresident) {
+      joinRequests = club.invitations
+        .filter(inv => inv.type === 'request')
+        .map(inv => ({
+          inviteId: inv.id,
+          userName: inv.user.name,
+          userNickname: inv.user.nickname,
+          modalityName: club.modality?.name,
+          message: inv.message
+        }));
+
+      outgoingInvites = club.invitations
+        .filter(inv => inv.type === 'invite')
+        .map(inv => ({
+          inviteId: inv.id,
+          userName: inv.user.name,
+          userNickname: inv.user.nickname,
+          modalityName: club.modality?.name
+        }));
+    }
+
+    let myPendingRequest = false;
+    let alreadyInSameModality = false;
+
+    if (reqUserId) {
+      const pendingReq = club.invitations.find(inv => inv.userId === reqUserId && inv.type === 'request' && inv.status === 'pending');
+      myPendingRequest = !!pendingReq;
+
+      if (club.modalityId) {
+        const otherMembership = await db.query.clubMembers.findFirst({
+           where: and(eq(clubMembers.userId, reqUserId), eq(clubMembers.modalityId, club.modalityId))
+        });
+        alreadyInSameModality = !!otherMembership;
+      }
+    }
+
+    // Return the specific object shape expected by the frontend
+    return {
+      club,
+      clubTrophies: [],
+      members: formattedMembers,
+      myPendingRequest,
+      alreadyInSameModality,
+      joinRequests,
+      outgoingInvites
+    };
   }
 
   async createClub(userId: number, data: any) {

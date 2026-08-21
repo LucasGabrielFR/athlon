@@ -440,7 +440,7 @@ export default async function CompetitionDetailPage({
                           competition={comp} 
                           role={role} 
                           planTier={user?.planTier} 
-                          existingScreenshotRequirements={comp.screenshotRequirements.map(req => req.title)} 
+                          existingScreenshotRequirements={(comp.screenshotRequirements || []).map(req => req.title)} 
                         />
                         {!isLocked && (
                           <div className="pt-2">

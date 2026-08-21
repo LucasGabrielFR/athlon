@@ -98,26 +98,25 @@ export default async function MatchManagementPage({
                     <span>{match.awayScore}</span>
                 </div>
                 <div className="flex gap-4">
-                   {match.status === 'scheduled' && (
-                       <form action={async () => { 
-                          "use server";
-                          await updateMatchStatusAction(matchId, 'live'); 
-                       }}>
-                          <button className="bg-azure hover:bg-azure-dark text-slate px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl flex items-center gap-2">
-                             <Play className="w-4 h-4" /> Iniciar Partida
-                          </button>
-                       </form>
-                   )}
-                   {match.status === 'live' && (
-                       <form action={async () => { 
-                          "use server";
-                          await updateMatchStatusAction(matchId, 'finished'); 
-                       }}>
+                   {match.status === 'scheduled' ? (
+                      <form action={async () => {
+                        'use server';
+                        await updateMatchStatusAction(Number(id), matchId, 'live'); 
+                      }}>
+                        <button type="submit" className="bg-azure hover:bg-azure-dark text-slate px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl flex items-center gap-2">
+                          <Play className="w-4 h-4" /> Iniciar Partida
+                        </button>
+                      </form>
+                   ) : match.status === 'live' ? (
+                      <form action={async () => {
+                        'use server';
+                        await updateMatchStatusAction(Number(id), matchId, 'finished'); 
+                      }}>
                           <button className="bg-green-500 hover:bg-green-600 text-slate px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl flex items-center gap-2">
                              <CheckCircle2 className="w-4 h-4" /> Finalizar Partida
                           </button>
                        </form>
-                   )}
+                   ) : null}
                 </div>
             </div>
 

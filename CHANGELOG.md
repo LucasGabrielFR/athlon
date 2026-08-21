@@ -4,6 +4,16 @@ Todas as mudanças notáveis para o projeto **Athlon** serão documentadas neste
 
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [0.7.0] - 2026-08-21
+### Added
+- **Competições (Fase 2 - Gestão e Interatividade):**
+  - Integração da funcionalidade de **Criar Competições** (`POST /competitions`).
+  - Suporte para **Inscrição de Clubes** em torneios e gestão de aprovações.
+  - Implementado sistema de **Roster (Elenco)**: os clubes agora podem convocar/desconvocar jogadores específicos para atuar na competição.
+  - Adicionado o **Feed da Competição** no backend: envio e exclusão de publicações, mural de recados.
+  - Funcionalidade de alteração de status e exclusão total de uma competição pelo organizador.
+- **Integração Web/API:** Religação de todos os `Server Actions` de competições (Next.js) apontando para os novos endpoints da API NestJS.
+
 ## [0.6.9] - 2026-08-16
 ### Changed
 - **Landing Page Dinâmica**: Os botões de ação ("Acessar", "Criar Conta", "Começar Agora") da página inicial agora verificam o estado de autenticação (sessão do usuário). Caso o usuário já esteja logado, os botões são automaticamente transformados para redirecionar diretamente para o Dashboard, melhorando a UX e evitando a navegação redundante para telas de login.
