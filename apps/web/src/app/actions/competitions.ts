@@ -145,7 +145,9 @@ export async function submitMatchReportAction(formData: FormData) {
   try {
     await fetchApi(`/competitions/${compId}/matches/${matchId}/report`, { method: 'POST', body: JSON.stringify(Object.fromEntries(formData)) });
     revalidatePath(`/dashboard/competitions/${compId}/matches/${matchId}`);
-  } catch(e) {}
+  } catch(e) {
+    console.error("Error submitting match report:", e);
+  }
 }
 
 export async function acceptMatchSubmissionAction(formData: FormData) {

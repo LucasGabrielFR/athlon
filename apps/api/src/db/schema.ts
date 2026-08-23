@@ -123,6 +123,20 @@ export const clubInvitations = mysqlTable('club_invitations', {
 });
 
 // ──────────────────────────────────────────
+// TRANSFER HISTORY (histórico do mercado da bola)
+// ──────────────────────────────────────────
+
+export const transferHistory = mysqlTable('transfer_history', {
+  id: serial('id').primaryKey(),
+  clubId: bigint('club_id', { mode: 'number', unsigned: true }).notNull().references(() => clubs.id, { onDelete: 'cascade' }),
+  userId: bigint('user_id', { mode: 'number', unsigned: true }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+  modalityId: bigint('modality_id', { mode: 'number', unsigned: true }).notNull().references(() => modalities.id),
+  type: varchar('type', { length: 20 }).notNull(), // 'join' | 'leave' | 'kicked'
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+
+// ──────────────────────────────────────────
 // COMPETITIONS
 // ──────────────────────────────────────────
 
@@ -481,6 +495,7 @@ export const playerModalities = mysqlTable('player_modalities', {
 export const usersRelations = relations(users, ({ one, many }) => ({
   memberships: many(clubMembers),
   invitations: many(clubInvitations),
+  transferHistory: many(transferHistory),
   presidedClubs: many(clubs),
   competitionPosts: many(competitionPosts),
   competitionPostComments: many(competitionPostComments),
@@ -502,6 +517,7 @@ export const clubsRelations = relations(clubs, ({ one, many }) => ({
   }),
   members: many(clubMembers),
   invitations: many(clubInvitations),
+  transferHistory: many(transferHistory),
 }));
 
 export const clubMembersRelations = relations(clubMembers, ({ one }) => ({
@@ -534,9 +550,25 @@ export const clubInvitationsRelations = relations(clubInvitations, ({ one }) => 
   }),
 }));
 
+export const transferHistoryRelations = relations(transferHistory, ({ one }) => ({
+  club: one(clubs, {
+    fields: [transferHistory.clubId],
+    references: [clubs.id],
+  }),
+  user: one(users, {
+    fields: [transferHistory.userId],
+    references: [users.id],
+  }),
+  modality: one(modalities, {
+    fields: [transferHistory.modalityId],
+    references: [modalities.id],
+  }),
+}));
+
 export const modalitiesRelations = relations(modalities, ({ many }) => ({
   members: many(clubMembers),
   invitations: many(clubInvitations),
+  transferHistory: many(transferHistory),
   competitions: many(competitions),
   positions: many(positions),
   statTypes: many(statTypes),

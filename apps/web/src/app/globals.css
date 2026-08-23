@@ -61,3 +61,16 @@ option {
   padding: 12px;
   font-weight: 600;
 }
+
+@layer base {
+  button,
+  [role="button"],
+  a {
+    cursor: pointer !important;
+  }
+  
+  button:disabled,
+  [role="button"]:disabled {
+    cursor: not-allowed !important;
+  }
+}

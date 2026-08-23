@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { registerAction } from '@/app/actions/auth';
+import { useRouter } from 'next/navigation';
+import { submitRegistrationAction, verifyCodeAction } from '@/app/actions/auth';
 
 const errorMessages: Record<string, string> = {
   missing_fields: 'Preencha todos os campos obrigatórios e selecione o tipo de conta.',
@@ -27,10 +28,70 @@ const roleOptions: { value: Role; icon: string; title: string; description: stri
 ];
 
 export default function RegisterClient({ error }: { error?: string }) {
+  const router = useRouter();
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
-  const [step, setStep] = useState<'role' | 'form'>('role');
+  const [step, setStep] = useState<'role' | 'form' | 'verify'>('role');
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [customError, setCustomError] = useState<string | null>(null);
 
-  const errorMsg = error ? errorMessages[error] : null;
+  const errorMsg = error ? errorMessages[error] : customError;
+
+  const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    setCustomError(null);
+    
+    const formData = new FormData(e.currentTarget);
+    const data = Object.fromEntries(formData.entries());
+    
+    try {
+      const res = await submitRegistrationAction(data);
+
+      if (!res.success) {
+        setCustomError(res.message || 'Erro ao registrar.');
+        setLoading(false);
+        return;
+      }
+
+      if (res.requiresVerification) {
+        setEmail(data.email as string);
+        setStep('verify');
+      } else {
+        router.push('/login?registered=true');
+      }
+    } catch (err) {
+      setCustomError('Erro interno no servidor.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerify = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    setCustomError(null);
+    
+    const formData = new FormData(e.currentTarget);
+    const code = formData.get('code') as string;
+    
+    try {
+      const res = await verifyCodeAction(email, code);
+
+      if (!res.success) {
+        setCustomError(res.message || 'Código inválido.');
+        setLoading(false);
+        return;
+      }
+
+      // Success, route to dashboard
+      router.push('/dashboard');
+    } catch (err) {
+      setCustomError('Erro interno no servidor.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (step === 'role') {
     return (
@@ -88,6 +149,45 @@ export default function RegisterClient({ error }: { error?: string }) {
     );
   }
 
+  if (step === 'verify') {
+    return (
+      <div className="bg-slate rounded-2xl border border-azure/20 p-8 shadow-2xl shadow-azure/5">
+        <h2 className="text-2xl font-bold text-ice mb-2">Verifique seu e-mail</h2>
+        <p className="text-sm text-ice/50 mb-8">Enviamos um código de 6 dígitos para o e-mail <span className="text-azure font-bold">{email}</span>.</p>
+
+        {errorMsg && (
+          <div className="mb-6 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+            ❌ {errorMsg}
+          </div>
+        )}
+
+        <form onSubmit={handleVerify} className="space-y-4">
+          <div>
+            <label className="block text-xs text-ice/60 mb-1 uppercase tracking-wider">
+              Código de Verificação <span className="text-azure">*</span>
+            </label>
+            <input
+              type="text"
+              name="code"
+              placeholder="000000"
+              maxLength={6}
+              required
+              className="w-full bg-navy border border-azure/20 rounded-lg px-4 py-3 text-ice placeholder:text-ice/30 focus:outline-none focus:border-azure transition-colors tracking-[0.5em] text-center font-bold text-xl"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-azure text-navy font-bold py-3 rounded-lg hover:bg-ice transition-colors mt-2 disabled:opacity-50"
+          >
+            {loading ? 'Verificando...' : 'Verificar Código'}
+          </button>
+        </form>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-slate rounded-2xl border border-azure/20 p-8 shadow-2xl shadow-azure/5">
       <button
@@ -113,7 +213,7 @@ export default function RegisterClient({ error }: { error?: string }) {
         </div>
       )}
 
-      <form action={registerAction} className="space-y-4">
+      <form onSubmit={handleRegister} className="space-y-4">
         <input type="hidden" name="role" value={selectedRole ?? ''} />
 
         <div className="grid grid-cols-2 gap-4">
@@ -169,9 +269,10 @@ export default function RegisterClient({ error }: { error?: string }) {
 
         <button
           type="submit"
-          className="w-full bg-azure text-navy font-bold py-3 rounded-lg hover:bg-ice transition-colors mt-2"
+          disabled={loading}
+          className="w-full bg-azure text-navy font-bold py-3 rounded-lg hover:bg-ice transition-colors mt-2 disabled:opacity-50"
         >
-          Criar Conta
+          {loading ? 'Criando Conta...' : 'Criar Conta'}
         </button>
       </form>
 

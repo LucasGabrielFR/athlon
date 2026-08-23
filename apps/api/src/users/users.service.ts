@@ -12,7 +12,7 @@ import {
   trophies,
   clubMembers
 } from '../db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, like, or, SQL, inArray, sql } from 'drizzle-orm';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -225,5 +225,116 @@ export class UsersService {
         )
       );
     return { success: true };
+  }
+
+  async searchPlayers(filters: {
+    page: number;
+    limit: number;
+    modalityId?: number;
+    positionId?: number;
+    status?: string;
+    query?: string;
+  }) {
+    const offset = (filters.page - 1) * filters.limit;
+    const conditions: SQL[] = [];
+
+    if (filters.query) {
+      conditions.push(
+        or(
+          like(users.name, `%${filters.query}%`),
+          like(users.nickname, `%${filters.query}%`)
+        )!
+      );
+    }
+
+    let userIdsWithModality: number[] | null = null;
+    if (filters.modalityId || filters.positionId || filters.status === 'free') {
+      const pmConditions: SQL[] = [];
+      if (filters.modalityId) pmConditions.push(eq(playerModalities.modalityId, filters.modalityId));
+      if (filters.positionId) {
+        pmConditions.push(
+          or(
+            eq(playerModalities.primaryPositionId, filters.positionId),
+            eq(playerModalities.secondaryPositionId, filters.positionId)
+          )!
+        );
+      }
+      if (filters.status === 'free') {
+        pmConditions.push(eq(playerModalities.isFreeAgent, true));
+      }
+      
+      const pms = await db.select({ userId: playerModalities.userId })
+                          .from(playerModalities)
+                          .where(and(...pmConditions));
+                          
+      userIdsWithModality = pms.map(pm => pm.userId);
+      if (userIdsWithModality.length === 0) {
+        return { data: [], total: 0 };
+      }
+    }
+
+    if (userIdsWithModality !== null) {
+      conditions.push(inArray(users.id, userIdsWithModality));
+    }
+
+    // Only show players, not admins
+    conditions.push(eq(users.role, 'player'));
+
+    const finalCondition = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const data = await db.query.users.findMany({
+      where: finalCondition,
+      limit: filters.limit,
+      offset,
+      with: {
+        playerProfile: true,
+        memberships: {
+          with: { club: true }
+        }
+      }
+    });
+
+    if (data.length === 0) {
+      return { data: [], total: 0 };
+    }
+
+    const [{ count }] = await db.select({ count: sql<number>`count(*)` })
+      .from(users)
+      .where(finalCondition);
+
+    const pms = await db.query.playerModalities.findMany({
+       where: inArray(playerModalities.userId, data.map(u => u.id)),
+       with: { modality: true }
+    });
+
+    const formatted = data.map(user => {
+      const userPms = pms.filter(pm => pm.userId === user.id);
+      
+      const formattedModalities = userPms.map(pm => {
+        const clubMember = user.memberships.find(m => m.modalityId === pm.modalityId);
+        
+        return {
+          id: pm.modality.id,
+          name: pm.modality.name,
+          isInClub: !!clubMember,
+          clubName: clubMember ? clubMember.club.name : null,
+          isFreeAgent: pm.isFreeAgent,
+          freeAgentMessage: pm.freeAgentMessage
+        };
+      });
+
+      return {
+        id: user.id,
+        name: user.name,
+        nickname: user.nickname,
+        avatarUrl: user.playerProfile?.avatarUrl || user.image,
+        modalities: formattedModalities
+      };
+    });
+
+    return {
+      data: formatted,
+      total: Number(count)
+    };
   }
 }

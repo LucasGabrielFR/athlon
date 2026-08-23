@@ -23,4 +23,13 @@ export class AuthController {
     };
     return this.authService.register(data);
   }
+
+  @Post('verify-code')
+  async verifyCode(@Body() body: { email: string; code: string }) {
+    if (!body.email || !body.code) {
+      throw new UnauthorizedException('Email e código são obrigatórios.');
+    }
+    return this.authService.verifyRegistrationCode(body.email, body.code);
+  }
 }
+

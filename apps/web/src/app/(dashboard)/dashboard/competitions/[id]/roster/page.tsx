@@ -40,6 +40,21 @@ export default async function RosterManagementPage({
     redirect(`/dashboard/competitions/${compId}`);
   }
 
+  // Check if transfer window is open
+  const now = new Date();
+  let isWindowOpen = false;
+  if (comp.isWindowManualOpen) {
+    isWindowOpen = true;
+  } else if (comp.registrationStartDate && comp.registrationEndDate) {
+    if (now >= new Date(comp.registrationStartDate) && now <= new Date(comp.registrationEndDate)) {
+      isWindowOpen = true;
+    }
+  } else if (comp.registrationStartDate && !comp.registrationEndDate) {
+    if (now >= new Date(comp.registrationStartDate)) {
+      isWindowOpen = true;
+    }
+  }
+
   return (
     <div className="max-w-4xl mx-auto py-8">
       <Link 
@@ -59,11 +74,19 @@ export default async function RosterManagementPage({
             <h2 className="text-3xl font-black text-ice tracking-tight">Gestão de <span className="text-azure">Inscritos</span></h2>
             <p className="text-ice/40 text-sm mt-1 italic">Competição: {comp.name} [{comp.modality?.name}]</p>
           </div>
-          <div className="bg-slate-dark/30 border border-azure/20 px-4 py-2 rounded-xl">
-             <p className="text-[10px] text-ice/30 uppercase font-black text-center mb-0.5">Vagas do Elenco</p>
-             <p className={`text-xl font-black text-center ${currentRoster.length < (comp.minPlayersPerTeam || 1) ? 'text-amber-400' : 'text-emerald-400'}`}>
-               {currentRoster.length} / {comp.maxPlayersPerTeam || '∞'}
-             </p>
+          <div className="flex items-end gap-4">
+            {!isWindowOpen && (
+              <div className="bg-red-500/10 border border-red-500/20 px-4 py-2 rounded-xl">
+                 <p className="text-[10px] text-red-400 uppercase font-black text-center mb-0.5">Mercado Fechado</p>
+                 <p className="text-xs font-bold text-red-400/60 text-center">Transferências Bloqueadas</p>
+              </div>
+            )}
+            <div className="bg-slate-dark/30 border border-azure/20 px-4 py-2 rounded-xl">
+               <p className="text-[10px] text-ice/30 uppercase font-black text-center mb-0.5">Vagas do Elenco</p>
+               <p className={`text-xl font-black text-center ${currentRoster.length < (comp.minPlayersPerTeam || 1) ? 'text-amber-400' : 'text-emerald-400'}`}>
+                 {currentRoster.length} / {comp.maxPlayersPerTeam || '∞'}
+               </p>
+            </div>
           </div>
         </div>
 
@@ -95,8 +118,11 @@ export default async function RosterManagementPage({
                     <form action={removeFromRosterAction}>
                       <input type="hidden" name="registrationId" value={regId} />
                       <input type="hidden" name="targetUserId" value={rosterItem.userId} />
-                      <button className="text-ice/20 hover:text-red-500 p-2 rounded-lg transition-colors flex items-center gap-2 group/btn">
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-0 group-hover/btn:opacity-100 transition-all transform translate-x-2 group-hover/btn:translate-x-0">Retirar</span>
+                      <button 
+                        disabled={!isWindowOpen}
+                        className="text-ice/20 hover:text-red-500 disabled:hover:text-ice/20 p-2 rounded-lg transition-colors flex items-center gap-2 group/btn disabled:opacity-30 disabled:cursor-not-allowed"
+                      >
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-0 group-hover/btn:opacity-100 transition-all transform translate-x-2 group-hover/btn:translate-x-0 group-disabled/btn:hidden">Retirar</span>
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </form>
@@ -129,8 +155,8 @@ export default async function RosterManagementPage({
                       <input type="hidden" name="registrationId" value={regId} />
                       <input type="hidden" name="targetUserId" value={member.userId} />
                       <button 
-                        disabled={comp.maxPlayersPerTeam ? currentRoster.length >= comp.maxPlayersPerTeam : false}
-                        className="bg-azure/10 hover:bg-azure text-azure hover:text-slate p-2 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed group-hover:scale-110"
+                        disabled={!isWindowOpen || (comp.maxPlayersPerTeam ? currentRoster.length >= comp.maxPlayersPerTeam : false)}
+                        className="bg-azure/10 hover:bg-azure text-azure hover:text-slate p-2 rounded-lg transition-all disabled:opacity-30 disabled:hover:bg-azure/10 disabled:hover:text-azure disabled:cursor-not-allowed group-hover:scale-110"
                       >
                          <span className="font-black text-xs">➕ Escalar</span>
                       </button>

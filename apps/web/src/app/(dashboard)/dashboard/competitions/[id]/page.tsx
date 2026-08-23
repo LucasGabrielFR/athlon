@@ -11,7 +11,7 @@ import { StartTournamentButton } from '@/components/start-tournament-button';
 import { StandingsTable, type TeamStanding } from '@/components/standings-table';
 import { KnockoutBracket } from '@/components/knockout-bracket';
 import { CompetitionStatistics } from '@/components/competition-statistics';
-import { LayoutDashboard, MessageSquare, Settings, ShieldAlert, Users, ChevronRight, Trophy, Calendar, ListOrdered, CheckCheck, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, MessageSquare, Settings, ShieldAlert, Users, ChevronRight, Trophy, Calendar, ListOrdered, CheckCheck, BarChart3, Scale } from 'lucide-react';
 
 export default async function CompetitionDetailPage({ 
   params,
@@ -49,6 +49,7 @@ export default async function CompetitionDetailPage({
   const topAssisters = data.topAssisters || [];
   const topMVPs = data.topMVPs || [];
   const topGoalkeepers = data.topGoalkeepers || [];
+  const disputedMatches = comp.matches?.filter((m: any) => m.submissionStatus === 'disputed') || [];
 
   const isOrganizer = comp.organizerId === userId || comp.organization?.presidentId === userId || isAdmin;
   const isRegistrationOpen = comp.isRegistrationManualOpen || comp.status === 'registration';
@@ -150,6 +151,20 @@ export default async function CompetitionDetailPage({
           >
             <BarChart3 size={14} />
             Estatísticas
+          </Link>
+        )}
+        {isOrganizer && (
+          <Link 
+            href={`?tab=disputes`}
+            className={`flex items-center gap-2 px-6 py-3 rounded-[1rem] transition-all font-black text-[10px] uppercase tracking-widest relative ${
+              tab === 'disputes' ? 'bg-red-500 text-slate shadow-lg shadow-red-500/20' : 'text-red-500/40 hover:text-red-500 hover:bg-slate-dark'
+            }`}
+          >
+            <Scale size={14} />
+            Disputas
+            {disputedMatches.length > 0 && tab !== 'disputes' && (
+              <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full border-2 border-slate animate-pulse" />
+            )}
           </Link>
         )}
         {isOrganizer && (
@@ -423,6 +438,49 @@ export default async function CompetitionDetailPage({
                 topMVPs={topMVPs}
                 topGoalkeepers={topGoalkeepers}
               />
+            </div>
+          )}
+
+          {tab === 'disputes' && isOrganizer && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-black text-ice italic">Disputas Pendentes</h3>
+                <span className="text-[10px] font-black bg-red-500/10 text-red-500 px-3 py-1 rounded-full">{disputedMatches.length} Pendentes</span>
+              </div>
+              {disputedMatches.length === 0 ? (
+                <div className="bg-slate border border-azure/10 p-12 rounded-[2rem] text-center">
+                  <Scale className="w-12 h-12 text-azure/20 mx-auto mb-4" />
+                  <p className="text-ice/40 italic font-bold">Nenhuma partida em disputa no momento.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-4">
+                  {disputedMatches.map((m: any) => (
+                    <div key={m.id} className="bg-slate border border-red-500/20 p-6 rounded-[2rem] flex items-center justify-between shadow-lg hover:border-red-500/40 transition-all group">
+                      <div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-[10px] bg-red-500/10 text-red-500 px-2 py-1 rounded font-black uppercase tracking-widest">
+                            {m.stage === 'group' ? 'Fase de Grupos' : 'Mata-Mata'}
+                          </span>
+                          <span className="text-xs text-ice/40 font-bold italic">
+                            Rodada {m.round}
+                          </span>
+                        </div>
+                        <h4 className="text-lg font-black text-ice mt-3 flex items-center gap-4">
+                          <span className="truncate max-w-[120px] sm:max-w-xs">{m.homeRegistration?.club?.name || '???'}</span>
+                          <span className="text-red-500 text-sm">VS</span>
+                          <span className="truncate max-w-[120px] sm:max-w-xs">{m.awayRegistration?.club?.name || '???'}</span>
+                        </h4>
+                      </div>
+                      <Link
+                        href={`/dashboard/competitions/${compId}/matches/${m.id}`}
+                        className="bg-red-500 hover:bg-red-600 text-slate px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-red-500/20"
+                      >
+                        Resolver
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

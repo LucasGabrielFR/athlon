@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { auth, signOut } from '@/auth';
+import { auth } from '@/auth';
+import { logoutAction } from '@/app/actions/auth';
 import { fetchApi } from '@/lib/api';
 import { NotificationBell } from './notification-bell';
 import { ThemeToggle } from './theme-toggle';
@@ -45,19 +46,14 @@ export async function Header() {
         <ThemeToggle />
         {userId && <NotificationBell initialNotifications={userNotifications} />}
         
-        <form
-          action={async () => {
-            'use server';
-            await signOut({ redirectTo: '/login' });
-          }}
-        >
-        <button
-          type="submit"
-          className="text-sm text-ice/40 hover:text-red-400 transition-colors"
-        >
-          Sair →
-        </button>
-      </form>
+        <form action={logoutAction}>
+          <button
+            type="submit"
+            className="text-sm text-ice/40 hover:text-red-400 transition-colors cursor-pointer"
+          >
+            Sair →
+          </button>
+        </form>
       </div>
     </header>
   );

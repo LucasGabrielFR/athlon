@@ -42,6 +42,11 @@ export class ModalitiesController {
     return this.modalitiesService.createPosition(body);
   }
 
+  @Get(':id/positions')
+  async getPositions(@Param('id') id: string) {
+    return this.modalitiesService.getPositionsByModality(Number(id));
+  }
+
   @Delete('positions/:id')
   async deletePosition(@Param('id') id: string) {
     return this.modalitiesService.deletePosition(Number(id));

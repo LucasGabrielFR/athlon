@@ -320,7 +320,33 @@ export class CompetitionsService {
     return { success: true };
   }
 
+  private async checkTransferWindow(compId: number) {
+    const comp = await db.query.competitions.findFirst({
+      where: eq(competitions.id, compId)
+    });
+    if (!comp) throw new NotFoundException('Competition not found');
+
+    // 1. Manual override always allows transfers
+    if (comp.isWindowManualOpen) return;
+
+    // 2. Check date-based registration window
+    const now = new Date();
+    if (comp.registrationStartDate && comp.registrationEndDate) {
+      if (now >= new Date(comp.registrationStartDate) && now <= new Date(comp.registrationEndDate)) {
+        return; // Valid
+      }
+    } else if (comp.registrationStartDate && !comp.registrationEndDate) {
+      if (now >= new Date(comp.registrationStartDate)) {
+        return; // Valid
+      }
+    }
+
+    throw new ForbiddenException('A janela de transferências para este torneio está fechada.');
+  }
+
   async addToRoster(compId: number, regId: number, dto: any) {
+    await this.checkTransferWindow(compId);
+    
     await db.insert(competitionRosters).values({
       registrationId: regId,
       userId: parseInt(dto.userId)
@@ -329,6 +355,8 @@ export class CompetitionsService {
   }
 
   async removeFromRoster(compId: number, regId: number, userIdToRemove: number) {
+    await this.checkTransferWindow(compId);
+
     await db.delete(competitionRosters).where(
       and(
         eq(competitionRosters.registrationId, regId),
@@ -674,9 +702,11 @@ export class CompetitionsService {
 
     const isHome = match.homeRegistration?.club?.presidentId === uploaderId;
     const isAway = match.awayRegistration?.club?.presidentId === uploaderId;
+    const competition = await db.query.competitions.findFirst({ where: eq(competitions.id, compId), with: { organization: true } });
+    const isAdmin = competition?.organization?.presidentId === uploaderId;
     
-    if (!isHome && !isAway) {
-      throw new ForbiddenException('Apenas os managers dos times podem enviar a súmula.');
+    if (!isHome && !isAway && !isAdmin) {
+      throw new ForbiddenException('Apenas os managers dos times ou administrador podem enviar a súmula.');
     }
 
     // Process screenshots from dto

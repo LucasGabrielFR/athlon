@@ -76,6 +76,12 @@ export class ModalitiesService {
     return { success: true };
   }
 
+  async getPositionsByModality(modalityId: number) {
+    return await db.query.positions.findMany({
+      where: eq(positions.modalityId, modalityId)
+    });
+  }
+
   async createPosition(data: any) {
     await db.insert(positions).values({
       modalityId: data.modalityId,

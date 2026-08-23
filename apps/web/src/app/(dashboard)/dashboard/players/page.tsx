@@ -38,7 +38,7 @@ export default async function PlayersPage({
 
     const [modalitiesRes, positionsRes, playersRes] = await Promise.all([
       fetchApi('/modalities'),
-      modalityFilter ? fetchApi(`/positions?modalityId=${modalityFilter}`) : Promise.resolve([]),
+      modalityFilter ? fetchApi(`/modalities/${modalityFilter}/positions`) : Promise.resolve([]),
       fetchApi(`/players?${queryParams.toString()}`)
     ]);
 

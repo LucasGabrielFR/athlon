@@ -15,30 +15,58 @@ export async function googleSignInAction() {
 }
 
 export async function registerAction(formData: FormData) {
-  const name = formData.get('name') as string;
-  const nickname = formData.get('nickname') as string;
-  const email = formData.get('email') as string;
-  const password = formData.get('password') as string;
-  const role = formData.get('role') as string;
+  // Legacy function - kept for backwards compatibility or can be removed if not used elsewhere
+  redirect('/login?registered=true');
+}
 
+export async function submitRegistrationAction(data: any) {
   try {
     const res = await fetch(`${API_URL}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, nickname, email, password, role }),
+      body: JSON.stringify(data),
     });
 
+    const json = await res.json();
+    
     if (!res.ok) {
-      redirect('/register?error=registration_failed');
+      return { success: false, message: json.message || 'Erro ao registrar.' };
     }
-  } catch (error) {
-    if ((error as { digest?: string })?.digest?.startsWith('NEXT_REDIRECT')) {
-      throw error;
-    }
-    redirect('/register?error=registration_failed');
-  }
 
-  redirect('/login?registered=true');
+    return { success: true, requiresVerification: json.requiresVerification };
+  } catch (error) {
+    return { success: false, message: 'Erro interno no servidor.' };
+  }
+}
+
+export async function verifyCodeAction(email: string, code: string) {
+  try {
+    const res = await fetch(`${API_URL}/auth/verify-code`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, code }),
+    });
+
+    const json = await res.json();
+    
+    if (!res.ok) {
+      return { success: false, message: json.message || 'Código inválido.' };
+    }
+
+    // Success - set cookie
+    const cookieStore = await cookies();
+    cookieStore.set('token', json.access_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 7 * 24 * 60 * 60 // 7 days
+    });
+
+    return { success: true };
+  } catch (error) {
+    return { success: false, message: 'Erro interno no servidor.' };
+  }
 }
 
 export async function completeOnboardingAction(formData: FormData) {

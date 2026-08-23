@@ -118,7 +118,7 @@ export function MatchEventForm({
 
         <button 
           disabled={status === 'finished' || !hasPlayers}
-          className="w-full bg-azure hover:bg-azure-dark text-slate py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all shadow-xl shadow-azure/10 disabled:opacity-20 flex items-center justify-center gap-2"
+          className="w-full cursor-pointer bg-azure hover:bg-azure-dark text-slate py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all shadow-xl shadow-azure/10 disabled:opacity-20 flex items-center justify-center gap-2"
         >
           Registrar Evento
         </button>

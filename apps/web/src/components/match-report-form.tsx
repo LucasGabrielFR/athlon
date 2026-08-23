@@ -57,7 +57,7 @@ export function MatchReportForm({
       </div>
 
       {match.submissionStatus === 'disputed' && (
-        <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-6">
+        <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-6 space-y-4">
           <div className="flex items-start gap-4">
             <AlertTriangle className="text-red-500 shrink-0" />
             <div>
@@ -67,6 +67,29 @@ export function MatchReportForm({
               </p>
             </div>
           </div>
+
+          {isAdmin && (
+            <div className="mt-4 bg-slate-dark/50 rounded-xl p-4 border border-red-500/20">
+              <h5 className="text-xs font-black uppercase text-red-500 tracking-widest mb-3">Detalhes da Disputa (Visão de Admin)</h5>
+              <div className="grid grid-cols-2 gap-4 text-center">
+                <div className="bg-slate p-3 rounded-lg border border-azure/10">
+                  <span className="block text-[10px] text-ice/40 uppercase tracking-widest font-black mb-1">Alegado pela Casa</span>
+                  <span className="text-xl font-black text-ice italic">
+                    {match.metadata?.homeSubmission?.homeScore ?? '?'} x {match.metadata?.homeSubmission?.awayScore ?? '?'}
+                  </span>
+                </div>
+                <div className="bg-slate p-3 rounded-lg border border-azure/10">
+                  <span className="block text-[10px] text-ice/40 uppercase tracking-widest font-black mb-1">Alegado pelo Visitante</span>
+                  <span className="text-xl font-black text-ice italic">
+                    {match.metadata?.awaySubmission?.homeScore ?? '?'} x {match.metadata?.awaySubmission?.awayScore ?? '?'}
+                  </span>
+                </div>
+              </div>
+              <p className="text-[10px] text-ice/40 mt-3 text-center italic">
+                Verifique as provas externamente e utilize a validação forçada abaixo para aplicar o resultado final definitivo.
+              </p>
+            </div>
+          )}
         </div>
       )}
 
@@ -101,14 +124,14 @@ export function MatchReportForm({
               <input type="hidden" name="competitionId" value={comp.id} />
               <input type="hidden" name="homeScore" value={opponentSubmission?.homeScore ?? 0} />
               <input type="hidden" name="awayScore" value={opponentSubmission?.awayScore ?? 0} />
-              <button type="submit" className="w-full bg-green-500 hover:bg-green-600 text-slate font-black py-4 rounded-xl uppercase tracking-widest text-[10px] transition-all">
+              <button type="submit" className="w-full cursor-pointer bg-green-500 hover:bg-green-600 text-slate font-black py-4 rounded-xl uppercase tracking-widest text-[10px] transition-all">
                 Confirmar Resultado
               </button>
             </form>
             <form action={async (data) => { await disputeMatchSubmissionAction(data); }} className="flex-1">
               <input type="hidden" name="matchId" value={match.id} />
               <input type="hidden" name="competitionId" value={comp.id} />
-              <button type="submit" className="w-full bg-red-500 hover:bg-red-600 text-slate font-black py-4 rounded-xl uppercase tracking-widest text-[10px] transition-all">
+              <button type="submit" className="w-full cursor-pointer bg-red-500 hover:bg-red-600 text-slate font-black py-4 rounded-xl uppercase tracking-widest text-[10px] transition-all">
                 Contestar (Disputar)
               </button>
             </form>
@@ -186,7 +209,7 @@ export function MatchReportForm({
           )}
 
           {!isReadOnly && canSubmit && (
-            <button type="submit" className="w-full bg-azure hover:bg-azure-dark text-slate font-black py-4 rounded-2xl uppercase tracking-[0.2em] shadow-xl shadow-azure/10 transition-all flex items-center justify-center gap-2">
+            <button type="submit" className="w-full cursor-pointer bg-azure hover:bg-azure-dark text-slate font-black py-4 rounded-2xl uppercase tracking-[0.2em] shadow-xl shadow-azure/10 transition-all flex items-center justify-center gap-2">
               <CheckCircle2 size={16} /> Enviar Súmula
             </button>
           )}
@@ -202,7 +225,7 @@ export function MatchReportForm({
                      newData.append('action', 'force_validate');
                      await acceptMatchSubmissionAction(newData); // reusing endpoint
                   }}
-                  className="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-slate font-black py-4 rounded-2xl uppercase tracking-[0.2em] shadow-xl transition-all"
+                  className="w-full cursor-pointer bg-gradient-to-r from-amber-500 to-amber-600 text-slate font-black py-4 rounded-2xl uppercase tracking-[0.2em] shadow-xl transition-all"
                 >
                   Validar Forçadamente (Admin)
                 </button>

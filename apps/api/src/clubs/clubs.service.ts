@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { db } from '../db';
-import { clubs, clubMembers, clubInvitations, users, modalities } from '../db/schema';
+import { clubs, clubMembers, clubInvitations, users, modalities, transferHistory } from '../db/schema';
 import { eq, and, like, or } from 'drizzle-orm';
 
 @Injectable()
@@ -230,6 +230,12 @@ export class ClubsService {
         modalityId: invite.modalityId,
         role: 'player',
       });
+      await db.insert(transferHistory).values({
+        clubId: invite.clubId,
+        userId: invite.userId,
+        modalityId: invite.modalityId,
+        type: 'join',
+      });
       await db.update(clubInvitations).set({ status: 'accepted' }).where(eq(clubInvitations.id, invitationId));
       return { success: true, clubId: invite.clubId };
     } else {
@@ -260,6 +266,12 @@ export class ClubsService {
         modalityId: request.modalityId,
         role: 'player',
       });
+      await db.insert(transferHistory).values({
+        clubId: request.clubId,
+        userId: request.userId,
+        modalityId: request.modalityId,
+        type: 'join',
+      });
       await db.update(clubInvitations).set({ status: 'accepted' }).where(eq(clubInvitations.id, invitationId));
       return { success: true, clubId: request.clubId };
     } else {
@@ -278,6 +290,12 @@ export class ClubsService {
     if (member.userId === presidentId) throw new BadRequestException('President cannot dismiss themselves');
 
     await db.delete(clubMembers).where(eq(clubMembers.id, memberId));
+    await db.insert(transferHistory).values({
+      clubId,
+      userId: member.userId,
+      modalityId: member.modalityId,
+      type: 'kicked',
+    });
     return { success: true };
   }
 
@@ -287,9 +305,20 @@ export class ClubsService {
       throw new BadRequestException('President cannot leave the club. Transfer presidency or delete the club.');
     }
 
+    const member = await db.query.clubMembers.findFirst({
+      where: and(eq(clubMembers.clubId, clubId), eq(clubMembers.userId, userId))
+    });
+    if (!member) return { success: true };
+
     await db.delete(clubMembers).where(
       and(eq(clubMembers.clubId, clubId), eq(clubMembers.userId, userId))
     );
+    await db.insert(transferHistory).values({
+      clubId,
+      userId,
+      modalityId: member.modalityId,
+      type: 'leave',
+    });
     return { success: true };
   }
 }
