@@ -70,7 +70,7 @@ export default async function LoginPage({
       <form action={googleSignInAction}>
         <button
           type="submit"
-          className="w-full bg-white text-slate-dark font-bold py-3.5 rounded-xl hover:bg-gray-100 transition-colors flex items-center justify-center gap-3"
+          className="w-full bg-white dark:bg-slate-dark text-slate-800 dark:text-ice font-bold py-3.5 rounded-xl border border-slate-200 dark:border-azure/20 shadow-sm hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-center gap-3"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path

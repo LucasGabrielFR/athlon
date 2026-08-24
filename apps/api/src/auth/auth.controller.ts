@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UnauthorizedException, Get, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Body, UnauthorizedException, BadRequestException, Get, UseGuards, Request } from '@nestjs/common';
 import { AuthService } from './auth.service';
 
 @Controller('auth')
@@ -16,10 +16,17 @@ export class AuthController {
 
   @Post('register')
   async register(@Body() body: any) {
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_])[A-Za-z\d\W_]{8,}$/;
+    if (!passwordRegex.test(body.password)) {
+      throw new BadRequestException('A senha deve ter no mínimo 8 caracteres, uma letra maiúscula, uma minúscula, um número e um caractere especial.');
+    }
+
     const data = {
       name: body.name,
       email: body.email,
       passwordHash: body.password,
+      nickname: body.nickname || null,
+      role: body.role || 'player',
     };
     return this.authService.register(data);
   }

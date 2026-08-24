@@ -4,6 +4,31 @@ Todas as mudanças notáveis para o projeto **Athlon** serão documentadas neste
 
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [0.7.2] - 2026-08-23
+### Added
+- **Segurança de Senha**: Implementada regra forte de senha (mín. 8 caracteres, maiúscula, minúscula, número e caractere especial) com validação dupla (Frontend e Backend).
+- **Dark/Light Mode em Auth**: Adicionado seletor de temas (sol/lua) nas páginas de Login e Registro para melhorar a acessibilidade e consistência visual.
+
+### Changed
+- **Botão Google**: Atualizado o contraste do botão de SSO do Google para ficar totalmente legível e agradável visualmente no modo Claro.
+
+### Fixed
+- **Dados do Usuário**: Corrigido um bug onde o Nickname (opcional) e o Papel (Role) do usuário não estavam sendo repassados pelo Controller para o serviço de criação de conta no banco de dados.
+- **Fluxo de Registro**: Corrigido um problema crônico onde o formulário nativo estático desviava a etapa de verificação de e-mail, registrando a conta sem coletar o token e travando a entrada do usuário. O registro agora utiliza obrigatoriamente o client em dois passos.
+
+
+## [0.7.1] - 2026-08-23
+### Added
+- **Dashboard e Estatísticas**: O Dashboard principal agora busca dados reais (via endpoint `/stats/overview`) para preencher as contagens de Modalidades, Clubes, Competições e Partidas.
+- **Seção "Meus Clubes"**: Acesso rápido aos clubes nos quais o usuário logado está inserido, diretamente no Dashboard.
+- **Registro 2-Step**: Reformulado o processo de cadastro de contas para incluir validação com token (via endpoint `/auth/verify-code`).
+
+### Changed
+- **Melhoria Visual (Light Mode)**: Ajuste fino no constraste do Dashboard para temas claros, substituindo transparências por classes com cores absolutas (`bg-slate-dark`) e aprimorando visibilidade de sombras e hover.
+
+### Fixed
+- **Sessão (Logout)**: O botão "Sair" do painel de navegação global agora utiliza um `Server Action` dedicado que remove corretamente os cookies JWT da API própria, em vez de depender da limpeza de sessão nativa inativa.
+
 ## [0.7.0] - 2026-08-21
 ### Added
 - **Competições (Fase 2 - Gestão e Interatividade):**
