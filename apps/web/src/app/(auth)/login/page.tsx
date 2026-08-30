@@ -43,7 +43,10 @@ export default async function LoginPage({
           />
         </div>
         <div>
-          <label htmlFor="password" className="block text-xs text-ice/60 mb-1 uppercase tracking-wider">Senha</label>
+          <div className="flex justify-between items-center mb-1">
+            <label htmlFor="password" className="block text-xs text-ice/60 uppercase tracking-wider">Senha</label>
+            <Link href="/forgot-password" className="text-xs text-azure hover:underline">Esqueceu a senha?</Link>
+          </div>
           <input
             id="password"
             type="password"

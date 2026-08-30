@@ -5,9 +5,12 @@ import { UsersModule } from '../users/users.module';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
+import { EmailModule } from '../email/email.module';
+
 @Global()
 @Module({
   imports: [
+    EmailModule,
     UsersModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],

@@ -51,6 +51,7 @@ O projeto utiliza uma stack moderna focada em performance e tipagem rigorosa:
 - **Banco de Dados:** [MySQL 8.0](https://www.mysql.com/) via Docker
 - **ORM:** [Drizzle ORM](https://orm.drizzle.team/)
 - **Storage:** [Cloudflare R2](https://www.cloudflare.com/developer-platform/r2/) (Uploads via Presigned URLs)
+- **E-mail:** [Resend](https://resend.com/) (E-mails transacionais e recuperação de senha)
 - **Estilização:** [Tailwind CSS 4](https://tailwindcss.com/) com Design System customizado.
 - **Ambiente:** Docker Compose
 

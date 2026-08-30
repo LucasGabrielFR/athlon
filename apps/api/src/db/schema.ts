@@ -49,6 +49,12 @@ export const verificationTokens = mysqlTable('verification_tokens', {
   expires: timestamp('expires').notNull(),
 });
 
+export const passwordResetTokens = mysqlTable('password_reset_tokens', {
+  identifier: varchar('identifier', { length: 255 }).notNull(),
+  token: varchar('token', { length: 255 }).notNull(),
+  expires: timestamp('expires').notNull(),
+});
+
 // ──────────────────────────────────────────
 // MODALITIES
 // ──────────────────────────────────────────

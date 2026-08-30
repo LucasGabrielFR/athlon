@@ -2,15 +2,17 @@ import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { db } from '../db';
-import { verificationTokens, users } from '../db/schema';
+import { verificationTokens, users, passwordResetTokens } from '../db/schema';
 import { eq, and, gt } from 'drizzle-orm';
 import * as bcrypt from 'bcrypt';
+import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private usersService: UsersService,
-    private jwtService: JwtService
+    private jwtService: JwtService,
+    private emailService: EmailService
   ) {}
 
   async validateUser(email: string, pass: string): Promise<any> {
@@ -70,8 +72,8 @@ export class AuthService {
       expires,
     });
 
-    // Simulate sending email
-    console.log(`\n\n[MOCK EMAIL] Código de verificação para ${data.email}: ${code}\n\n`);
+    // Send email via Resend
+    await this.emailService.sendRegistrationEmail(data.email, code);
 
     return { 
       message: 'Código de verificação enviado.',
@@ -110,5 +112,67 @@ export class AuthService {
       .where(eq(verificationTokens.identifier, email));
 
     return this.login(user);
+  }
+
+  async forgotPassword(email: string) {
+    const user = await this.usersService.findOneByEmail(email);
+    if (!user) {
+      // Return success silently for security
+      return { message: 'Se o e-mail existir, um código foi enviado.' };
+    }
+
+    // Generate 6-digit code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expires = new Date();
+    expires.setHours(expires.getHours() + 1); // 1 hour expiration
+
+    // Save token in passwordResetTokens table
+    await db.insert(passwordResetTokens).values({
+      identifier: email,
+      token: code,
+      expires,
+    });
+
+    // Send recovery email via Resend
+    await this.emailService.sendPasswordResetEmail(email, code);
+
+    return { message: 'Se o e-mail existir, um código foi enviado.' };
+  }
+
+  async resetPassword(email: string, code: string, newPassword: string) {
+    const [tokenRecord] = await db.select()
+      .from(passwordResetTokens)
+      .where(
+        and(
+          eq(passwordResetTokens.identifier, email),
+          eq(passwordResetTokens.token, code),
+          gt(passwordResetTokens.expires, new Date())
+        )
+      )
+      .limit(1);
+
+    if (!tokenRecord) {
+      throw new BadRequestException('Código inválido ou expirado.');
+    }
+
+    const user = await this.usersService.findOneByEmail(email);
+    if (!user) {
+      throw new BadRequestException('Usuário não encontrado.');
+    }
+
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(newPassword, salt);
+
+    // Update user password
+    await db.update(users)
+      .set({ passwordHash })
+      .where(eq(users.id, user.id));
+
+    // Delete token
+    await db.delete(passwordResetTokens)
+      .where(eq(passwordResetTokens.identifier, email));
+
+    return { message: 'Senha alterada com sucesso.' };
   }
 }

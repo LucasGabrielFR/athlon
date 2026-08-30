@@ -4,6 +4,12 @@ Todas as mudanças notáveis para o projeto **Athlon** serão documentadas neste
 
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [0.8.0] - 2026-08-30
+### Added
+- **Recuperação de Senha**: Implementado o fluxo completo de "Esqueceu sua senha?", permitindo que o usuário solicite um código de verificação via e-mail e redefina a senha na plataforma.
+- **Provedor de E-mail (Resend)**: Integração do backend com a API do Resend para envios reais de e-mails transacionais (Verificação de conta e Recuperação de senha), substituindo o comportamento anterior de mock no console.
+- **Tabela de Tokens**: Adicionada a tabela `password_reset_tokens` no banco de dados para gerenciar os códigos temporários de 6 dígitos.
+
 ## [0.7.2] - 2026-08-23
 ### Added
 - **Segurança de Senha**: Implementada regra forte de senha (mín. 8 caracteres, maiúscula, minúscula, número e caractere especial) com validação dupla (Frontend e Backend).

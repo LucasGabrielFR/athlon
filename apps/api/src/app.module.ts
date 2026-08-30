@@ -10,6 +10,7 @@ import { ModalitiesModule } from './modalities/modalities.module';
 import { CompetitionsModule } from './competitions/competitions.module';
 import { StatsModule } from './stats/stats.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { EmailModule } from './email/email.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     CompetitionsModule,
     StatsModule,
     NotificationsModule,
+    EmailModule,
   ],
   controllers: [AppController],
   providers: [AppService],

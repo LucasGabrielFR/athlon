@@ -134,3 +134,43 @@ export async function logoutAction() {
   cookieStore.delete('token');
   redirect('/login');
 }
+
+export async function forgotPasswordAction(data: { email: string }) {
+  try {
+    const res = await fetch(`${API_URL}/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+
+    const json = await res.json();
+    
+    if (!res.ok) {
+      return { success: false, error: json.message || 'Erro ao processar solicitação.' };
+    }
+
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: 'Erro interno no servidor.' };
+  }
+}
+
+export async function resetPasswordAction(data: { email: string; code: string; newPassword: string }) {
+  try {
+    const res = await fetch(`${API_URL}/auth/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+
+    const json = await res.json();
+    
+    if (!res.ok) {
+      return { success: false, error: json.message || 'Erro ao redefinir senha.' };
+    }
+
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: 'Erro interno no servidor.' };
+  }
+}
