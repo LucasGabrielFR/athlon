@@ -1,10 +1,12 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, Inject } from '@nestjs/common';
 import { db } from '../db';
 import { competitions, competitionRegistrations, organizations, clubMembers, matches, users, modalities, competitionRosters, competitionPosts, matchEvents, matchScreenshots, matchPlayerStats } from '../db/schema';
 import { eq, and, or, inArray, sql } from 'drizzle-orm';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class CompetitionsService {
+  constructor(private notificationsService: NotificationsService) {}
 
   async getDashboard(userId: number) {
     // 1. Fetch all competitions
@@ -310,6 +312,22 @@ export class CompetitionsService {
       clubId: parseInt(dto.clubId),
       status: 'pending'
     });
+
+    const comp = await db.query.competitions.findFirst({
+      where: eq(competitions.id, compId),
+      with: { organization: true }
+    });
+
+    if (comp && comp.organization) {
+      await this.notificationsService.createNotification(
+        comp.organization.presidentId!,
+        'Nova inscrição de clube',
+        `Um clube se inscreveu na competição ${comp.name}.`,
+        'competition',
+        `/dashboard/competitions/${compId}/manage`
+      );
+    }
+
     return { success: true };
   }
 
@@ -394,6 +412,25 @@ export class CompetitionsService {
           eq(competitionRegistrations.competitionId, compId)
         )
       );
+
+    const reg = await db.query.competitionRegistrations.findFirst({
+      where: eq(competitionRegistrations.id, regId),
+      with: { club: true, competition: true }
+    });
+
+    if (reg && reg.club) {
+      await this.notificationsService.createNotification(
+        reg.club.presidentId!,
+        status === 'approved' ? 'Inscrição Aprovada' : 'Inscrição Rejeitada',
+        `A inscrição do seu clube no torneio ${reg.competition?.name} foi ${status === 'approved' ? 'aprovada' : 'rejeitada'}.`,
+        'competition',
+        `/dashboard/clubs/${reg.clubId}`
+      );
+
+      // Se for aprovado, também pode notificar os jogadores do clube (futuro ou agora).
+      // Para o MVP, notificar o presidente já é o essencial.
+    }
+
     return { success: true    }
   }
 
@@ -784,6 +821,31 @@ export class CompetitionsService {
 
     if (nextStatus === 'validated' && match.stage === 'knockout') {
         await this.advanceKnockoutWinner(compId, matchId, updateData.homeScore, updateData.awayScore);
+    }
+
+    // Notify the opposing manager that a result was submitted
+    if (nextStatus === 'submitted_by_home' || nextStatus === 'submitted_by_away') {
+      const opposingManagerId = isHome ? match.awayRegistration?.club?.presidentId : match.homeRegistration?.club?.presidentId;
+      if (opposingManagerId) {
+        await this.notificationsService.createNotification(
+          opposingManagerId,
+          'Súmula enviada',
+          `O adversário enviou o resultado da partida. Acesse para conferir e validar.`,
+          'match',
+          `/dashboard/competitions/${compId}/matches/${matchId}`
+        );
+      }
+    } else if (nextStatus === 'validated') {
+      // Notify both that it was validated
+      const homeId = match.homeRegistration?.club?.presidentId;
+      const awayId = match.awayRegistration?.club?.presidentId;
+      if (homeId) await this.notificationsService.createNotification(homeId, 'Resultado validado', 'O resultado da partida foi validado.', 'match', `/dashboard/competitions/${compId}/matches/${matchId}`);
+      if (awayId && awayId !== homeId) await this.notificationsService.createNotification(awayId, 'Resultado validado', 'O resultado da partida foi validado.', 'match', `/dashboard/competitions/${compId}/matches/${matchId}`);
+    } else if (nextStatus === 'disputed') {
+      const adminId = competition?.organization?.presidentId;
+      if (adminId) {
+        await this.notificationsService.createNotification(adminId, 'Súmula em Disputa', `Houve divergência no resultado enviado para uma partida.`, 'match', `/dashboard/competitions/${compId}/matches/${matchId}`);
+      }
     }
 
     return { success: true };

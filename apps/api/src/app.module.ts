@@ -8,6 +8,8 @@ import { OrganizationsModule } from './organizations/organizations.module';
 import { ClubsModule } from './clubs/clubs.module';
 import { ModalitiesModule } from './modalities/modalities.module';
 import { CompetitionsModule } from './competitions/competitions.module';
+import { StatsModule } from './stats/stats.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -18,6 +20,8 @@ import { CompetitionsModule } from './competitions/competitions.module';
     ClubsModule,
     ModalitiesModule,
     CompetitionsModule,
+    StatsModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

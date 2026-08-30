@@ -5,6 +5,7 @@ import { Bell, Check, BellRing } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { markNotificationAsReadAction, markAllNotificationsAsReadAction } from '@/app/actions/notifications';
 import { useRouter } from 'next/navigation';
+import { io, Socket } from 'socket.io-client';
 
 export type NotificationType = {
   id: number;
@@ -16,13 +17,42 @@ export type NotificationType = {
   createdAt: Date | null;
 };
 
-export function NotificationBell({ initialNotifications }: { initialNotifications: NotificationType[] }) {
+export function NotificationBell({ initialNotifications, userId }: { initialNotifications: NotificationType[], userId: number }) {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState(initialNotifications);
   const containerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const [socket, setSocket] = useState<Socket | null>(null);
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
+
+  useEffect(() => {
+    if (userId) {
+      // Create a fake token just for decode to work: base64(header).base64({sub: id}).signature
+      const fakePayload = btoa(JSON.stringify({ sub: userId }));
+      const fakeToken = `header.${fakePayload}.signature`;
+
+      const newSocket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001', {
+        auth: {
+          token: fakeToken
+        }
+      });
+
+      newSocket.on('connect', () => {
+        console.log('Connected to notifications WS');
+      });
+
+      newSocket.on('new_notification', (notif: NotificationType) => {
+        setNotifications(prev => [notif, ...prev]);
+      });
+
+      setSocket(newSocket);
+
+      return () => {
+        newSocket.disconnect();
+      };
+    }
+  }, [userId]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -46,9 +76,10 @@ export function NotificationBell({ initialNotifications }: { initialNotification
       await markNotificationAsReadAction(notif.id);
     }
     setIsOpen(false);
-    if (notif.link) {
-      router.push(notif.link);
-    }
+    // TODO: Restore link redirection when notification links are correctly mapped
+    // if (notif.link) {
+    //   router.push(notif.link);
+    // }
   };
 
   return (

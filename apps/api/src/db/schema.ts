@@ -504,6 +504,18 @@ export const usersRelations = relations(users, ({ one, many }) => ({
     fields: [users.id],
     references: [playerProfiles.userId],
   }),
+  notifications: many(notifications),
+}));
+
+export const playerProfilesRelations = relations(playerProfiles, ({ one }) => ({
+  user: one(users, {
+    fields: [playerProfiles.userId],
+    references: [users.id],
+  }),
+  activeModality: one(modalities, {
+    fields: [playerProfiles.activeModalityId],
+    references: [modalities.id],
+  }),
 }));
 
 export const clubsRelations = relations(clubs, ({ one, many }) => ({
@@ -817,6 +829,21 @@ export const matchScreenshots = mysqlTable('match_screenshots', {
   }).onDelete('cascade'),
 ]);
 
+export const matchScreenshotsRelations = relations(matchScreenshots, ({ one }) => ({
+  match: one(matches, {
+    fields: [matchScreenshots.matchId],
+    references: [matches.id],
+  }),
+  requirement: one(competitionScreenshotRequirements, {
+    fields: [matchScreenshots.requirementId],
+    references: [competitionScreenshotRequirements.id],
+  }),
+  registration: one(competitionRegistrations, {
+    fields: [matchScreenshots.registrationId],
+    references: [competitionRegistrations.id],
+  }),
+}));
+
 // ──────────────────────────────────────────
 // NOTIFICATIONS
 // ──────────────────────────────────────────
@@ -824,10 +851,10 @@ export const matchScreenshots = mysqlTable('match_screenshots', {
 export const notifications = mysqlTable('notifications', {
   id: serial('id').primaryKey(),
   userId: bigint('user_id', { mode: 'number', unsigned: true }).notNull(),
-  type: varchar('type', { length: 50 }).notNull(),
   title: varchar('title', { length: 255 }).notNull(),
   message: text('message').notNull(),
-  link: varchar('link', { length: 500 }),
+  type: varchar('type', { length: 50 }).notNull().default('system'), // 'match' | 'club' | 'competition' | 'system'
+  link: varchar('link', { length: 255 }), // Rota opcional para redirecionamento ao clicar
   isRead: boolean('is_read').notNull().default(false),
   createdAt: timestamp('created_at').defaultNow(),
 }, (table) => [
@@ -845,35 +872,5 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
   }),
 }));
 
-export const playerProfilesRelations = relations(playerProfiles, ({ one }) => ({
-  user: one(users, {
-    fields: [playerProfiles.userId],
-    references: [users.id],
-  }),
-  activeModality: one(modalities, {
-    fields: [playerProfiles.activeModalityId],
-    references: [modalities.id],
-  }),
-}));
 
-export const accountsRelations = relations(accounts, ({ one }) => ({
-  user: one(users, {
-    fields: [accounts.userId],
-    references: [users.id],
-  }),
-}));
-
-export const sessionsRelations = relations(sessions, ({ one }) => ({
-  user: one(users, {
-    fields: [sessions.userId],
-    references: [users.id],
-  }),
-}));
-
-export const matchScreenshotsRelations = relations(matchScreenshots, ({ one }) => ({
-  match: one(matches, {
-    fields: [matchScreenshots.matchId],
-    references: [matches.id],
-  }),
-}));
 

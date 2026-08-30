@@ -31,7 +31,7 @@ export async function createNotification(data: {
 export async function markNotificationAsReadAction(id: number) {
   await requireSession();
   try {
-    await fetchApi(`/notifications/${id}/read`, { method: 'PUT' });
+    await fetchApi(`/notifications/${id}/read`, { method: 'PATCH' });
     revalidatePath('/', 'layout');
   } catch (error) {}
 }
@@ -39,7 +39,7 @@ export async function markNotificationAsReadAction(id: number) {
 export async function markAllNotificationsAsReadAction() {
   await requireSession();
   try {
-    await fetchApi('/notifications/read-all', { method: 'PUT' });
+    await fetchApi('/notifications/read-all', { method: 'PATCH' });
     revalidatePath('/', 'layout');
   } catch (error) {}
 }

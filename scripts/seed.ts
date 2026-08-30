@@ -45,7 +45,7 @@ async function seed() {
   const adminEmail = 'admin@athlon.com';
   const existingAdmin = await db.query.users.findFirst({ where: eq(users.email, adminEmail) });
   if (existingAdmin) {
-    await db.update(users).set({ role: 'admin', emailVerified: new Date() }).where(eq(users.id, existingAdmin.id));
+    await db.update(users).set({ role: 'admin', emailVerified: new Date(), passwordHash }).where(eq(users.id, existingAdmin.id));
   } else {
     await db.insert(users).values({
       name: 'Super Admin',
@@ -71,7 +71,7 @@ async function seed() {
     
     if (existingPres) {
       presId = existingPres.id;
-      await db.update(users).set({ role: 'club_president', emailVerified: new Date() }).where(eq(users.id, presId));
+      await db.update(users).set({ role: 'club_president', emailVerified: new Date(), passwordHash }).where(eq(users.id, presId));
     } else {
       const [res]: any = await db.insert(users).values({
         name: presidentName,
@@ -122,7 +122,7 @@ async function seed() {
         
         if (existingPlayer) {
           playerId = existingPlayer.id;
-          await db.update(users).set({ emailVerified: new Date() }).where(eq(users.id, playerId));
+          await db.update(users).set({ emailVerified: new Date(), passwordHash }).where(eq(users.id, playerId));
         } else {
           const [res]: any = await db.insert(users).values({
             name: pName,

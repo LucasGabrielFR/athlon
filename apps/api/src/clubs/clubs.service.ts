@@ -1,10 +1,12 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException, Inject } from '@nestjs/common';
 import { db } from '../db';
 import { clubs, clubMembers, clubInvitations, users, modalities, transferHistory } from '../db/schema';
 import { eq, and, like, or } from 'drizzle-orm';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class ClubsService {
+  constructor(private notificationsService: NotificationsService) {}
   
   async searchClubs(query?: string, modalityId?: number, page: number = 1, limit: number = 20) {
     let conditions = [];
@@ -183,6 +185,14 @@ export class ClubsService {
       message: data.message,
     });
 
+    await this.notificationsService.createNotification(
+      data.targetUserId,
+      'Novo convite de Clube',
+      `O clube ${club.name} enviou um convite para você.`,
+      'club',
+      `/dashboard/clubs/${clubId}`
+    );
+
     return { success: true };
   }
 
@@ -213,6 +223,14 @@ export class ClubsService {
       message: data.message,
     });
 
+    await this.notificationsService.createNotification(
+      club.presidentId!,
+      'Nova solicitação de entrada',
+      `Um jogador solicitou entrada no seu clube ${club.name}.`,
+      'club',
+      `/dashboard/clubs/${clubId}`
+    );
+
     return { success: true };
   }
 
@@ -222,6 +240,8 @@ export class ClubsService {
     if (invite.status !== 'pending') throw new BadRequestException('Invitation is no longer pending');
     if (invite.userId !== userId) throw new ForbiddenException('Not your invitation');
     if (invite.type !== 'invite') throw new BadRequestException('Not an invitation');
+
+    const club = await db.query.clubs.findFirst({ where: eq(clubs.id, invite.clubId) });
 
     if (accept) {
       await db.insert(clubMembers).values({
@@ -237,9 +257,31 @@ export class ClubsService {
         type: 'join',
       });
       await db.update(clubInvitations).set({ status: 'accepted' }).where(eq(clubInvitations.id, invitationId));
+      
+      if (club) {
+        await this.notificationsService.createNotification(
+          club.presidentId!,
+          'Convite Aceito',
+          `Um jogador aceitou o convite para entrar no clube ${club.name}.`,
+          'club',
+          `/dashboard/clubs/${invite.clubId}`
+        );
+      }
+
       return { success: true, clubId: invite.clubId };
     } else {
       await db.update(clubInvitations).set({ status: 'rejected' }).where(eq(clubInvitations.id, invitationId));
+      
+      if (club) {
+        await this.notificationsService.createNotification(
+          club.presidentId!,
+          'Convite Recusado',
+          `Um jogador recusou o convite para entrar no clube ${club.name}.`,
+          'club',
+          `/dashboard/clubs/${invite.clubId}`
+        );
+      }
+
       return { success: true };
     }
   }
@@ -273,9 +315,27 @@ export class ClubsService {
         type: 'join',
       });
       await db.update(clubInvitations).set({ status: 'accepted' }).where(eq(clubInvitations.id, invitationId));
+      
+      await this.notificationsService.createNotification(
+        request.userId,
+        'Solicitação Aceita',
+        `Sua solicitação para entrar no clube ${request.club.name} foi aceita!`,
+        'club',
+        `/dashboard/player`
+      );
+
       return { success: true, clubId: request.clubId };
     } else {
       await db.update(clubInvitations).set({ status: 'rejected' }).where(eq(clubInvitations.id, invitationId));
+      
+      await this.notificationsService.createNotification(
+        request.userId,
+        'Solicitação Recusada',
+        `Sua solicitação para entrar no clube ${request.club.name} foi recusada.`,
+        'club',
+        `/dashboard/player`
+      );
+
       return { success: true };
     }
   }
@@ -296,6 +356,15 @@ export class ClubsService {
       modalityId: member.modalityId,
       type: 'kicked',
     });
+
+    await this.notificationsService.createNotification(
+      member.userId,
+      'Removido do Clube',
+      `Você foi removido do clube ${club.name} pelo presidente.`,
+      'club',
+      `/dashboard/player`
+    );
+
     return { success: true };
   }
 
@@ -319,6 +388,17 @@ export class ClubsService {
       modalityId: member.modalityId,
       type: 'leave',
     });
+
+    if (club) {
+      await this.notificationsService.createNotification(
+        club.presidentId!,
+        'Jogador saiu do clube',
+        `Um jogador deixou o seu clube ${club.name}.`,
+        'club',
+        `/dashboard/clubs/${clubId}`
+      );
+    }
+
     return { success: true };
   }
 }

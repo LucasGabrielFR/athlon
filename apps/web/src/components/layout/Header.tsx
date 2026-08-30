@@ -44,7 +44,7 @@ export async function Header() {
       </div>
       <div className="flex items-center gap-6">
         <ThemeToggle />
-        {userId && <NotificationBell initialNotifications={userNotifications} />}
+        {userId && <NotificationBell initialNotifications={userNotifications} userId={userId} />}
         
         <form action={logoutAction}>
           <button
