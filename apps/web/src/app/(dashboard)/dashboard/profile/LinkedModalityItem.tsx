@@ -27,7 +27,7 @@ interface LinkedItem {
 
 export default function LinkedModalityItem({ item, isActive }: { item: LinkedItem, isActive: boolean }) {
   const [isEditing, setIsEditing] = useState(false);
-  const hasPositions = item.modality.positions.length > 0;
+  const hasPositions = item.modality.positions && item.modality.positions.length > 0;
 
   if (isEditing) {
     return (

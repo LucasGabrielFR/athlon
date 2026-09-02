@@ -21,12 +21,17 @@ export class AuthController {
       throw new BadRequestException('A senha deve ter no mínimo 8 caracteres, uma letra maiúscula, uma minúscula, um número e um caractere especial.');
     }
 
+    if (body.role === 'player' && !body.nickname) {
+      throw new BadRequestException('Nickname é obrigatório para jogadores.');
+    }
+
     const data = {
-      name: body.name,
+      name: body.name || body.nickname || body.email.split('@')[0], // placeholder name
       email: body.email,
       passwordHash: body.password,
       nickname: body.nickname || null,
       role: body.role || 'player',
+      birthDate: body.birthDate ? new Date(body.birthDate) : null,
     };
     return this.authService.register(data);
   }

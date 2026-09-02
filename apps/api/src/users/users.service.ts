@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { db } from '../db';
 import { 
   users, 
@@ -110,14 +110,24 @@ export class UsersService {
       where: eq(playerProfiles.userId, userId),
     });
 
-    const modalities = await db.query.playerModalities.findMany({
+    const linkedModalities = await db.query.playerModalities.findMany({
       where: eq(playerModalities.userId, userId),
       with: {
-        modality: true,
+        modality: {
+          with: {
+            positions: true
+          }
+        },
         primaryPosition: true,
         secondaryPosition: true,
       }
     });
+
+    const allModalities = await db.query.modalities.findMany({
+      with: { positions: true }
+    });
+    const linkedModalityIds = linkedModalities.map(m => m.modalityId);
+    const availableModalities = allModalities.filter(m => !linkedModalityIds.includes(m.id));
 
     // Also get trophies and clubs
     const userTrophies = await db.query.trophies.findMany({
@@ -132,22 +142,37 @@ export class UsersService {
 
     const { passwordHash, ...safeUser } = user;
     return { 
-      ...safeUser, 
+      user: safeUser, 
       profile, 
-      modalities,
+      linked: linkedModalities,
+      availableModalities,
       trophies: userTrophies,
       memberships,
     };
   }
 
   async updateProfile(userId: number, data: any) {
-    // Update user name/image
-    if (data.name || data.avatarUrl) {
-      await db.update(users).set({
-        name: data.name,
-        image: data.avatarUrl,
-        updatedAt: new Date()
-      }).where(eq(users.id, userId));
+    if (data.nickname) {
+      const existingUser = await db.query.users.findFirst({
+        where: and(eq(users.nickname, data.nickname), sql`${users.id} != ${userId}`)
+      });
+      if (existingUser) {
+        throw new BadRequestException('NICKNAME_TAKEN');
+      }
+    }
+
+    // Update user name/image/nickname/location/birthDate
+    if (data.name !== undefined || data.avatarUrl !== undefined || data.nickname !== undefined || data.location !== undefined || data.birthDate !== undefined) {
+      const updateData: any = { updatedAt: new Date() };
+      if (data.name !== undefined) updateData.name = data.name;
+      if (data.avatarUrl !== undefined) updateData.image = data.avatarUrl;
+      if (data.nickname !== undefined) updateData.nickname = data.nickname;
+      if (data.location !== undefined) updateData.location = data.location;
+      if (data.birthDate !== undefined) {
+        updateData.birthDate = data.birthDate ? new Date(data.birthDate) : null;
+      }
+
+      await db.update(users).set(updateData).where(eq(users.id, userId));
     }
 
     // Update profile bio

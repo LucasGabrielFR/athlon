@@ -18,12 +18,12 @@
 }
 
 .light {
-  --background: #F8FAFC;
+  --background: #F3F4F6;
   --foreground: #0F172A;
   
-  --athlon-navy: #F8FAFC;
+  --athlon-navy: #E2E8F0;
   --athlon-slate: #FFFFFF;
-  --athlon-slate-dark: #F1F5F9;
+  --athlon-slate-dark: #F8FAFC;
   
   --athlon-ice: #0F172A;
   --athlon-azure: #0284C7;

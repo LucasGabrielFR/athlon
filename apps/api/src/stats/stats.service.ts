@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { db } from '../db';
 import { 
   modalities, clubs, competitions, matches, users, organizations, 
-  clubMembers, matchPlayerStats, competitionRegistrations 
+  clubMembers, matchPlayerStats, competitionRegistrations, playerModalities
 } from '../db/schema';
 import { eq, sql, desc, and, or, inArray, count, countDistinct } from 'drizzle-orm';
 
@@ -55,10 +55,17 @@ export class StatsService {
   }
 
   public async getPlayerDashboard(userId: number) {
+    const user = await db.query.users.findFirst({ where: eq(users.id, userId) });
+    
     const myClubs = await db.query.clubMembers.findMany({
       where: eq(clubMembers.userId, userId),
       with: { club: true, modality: true }
     });
+
+    const [linkedCount] = await db.select({ count: sql<number>`count(*)` })
+      .from(playerModalities)
+      .where(eq(playerModalities.userId, userId));
+
 
     const statsPerModality = await db.select({
       modalityId: competitions.modalityId,
@@ -117,6 +124,12 @@ export class StatsService {
     ];
 
     return {
+      user: {
+        name: user?.name,
+        nickname: user?.nickname,
+        birthDate: user?.birthDate,
+      },
+      hasLinkedModalities: Number(linkedCount?.count || 0) > 0,
       clubs: myClubs,
       statsPerModality: statsPerModality.map(s => ({
         ...s, 

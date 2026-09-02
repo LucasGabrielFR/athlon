@@ -20,7 +20,7 @@ export default function AddModalityForm({ modalities }: { modalities: Modality[]
   const [selectedModalityId, setSelectedModalityId] = useState<string>('');
   
   const selectedModality = modalities.find(m => m.id === Number(selectedModalityId));
-  const hasPositions = selectedModality && selectedModality.positions.length > 0;
+  const hasPositions = selectedModality && selectedModality.positions && selectedModality.positions.length > 0;
 
   return (
     <form action={addPlayerModalityAction} className="space-y-4">

@@ -1,10 +1,9 @@
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import { fetchApi } from '@/lib/api';
-import { updateProfileAction } from '@/app/actions/profile';
 import AddModalityForm from './AddModalityForm';
 import LinkedModalityItem from './LinkedModalityItem';
-import { ImageUpload } from '@/components/ui/image-upload';
+import ProfileForm from './ProfileForm';
 
 export default async function ProfilePage() {
   const session = await auth();
@@ -55,46 +54,7 @@ export default async function ProfilePage() {
 
         {/* Edit Form */}
         <div className="xl:col-span-2 space-y-6">
-          <div className="bg-slate rounded-xl border border-azure/10 p-6">
-            <h3 className="text-ice font-bold text-lg mb-5">Dados Pessoais</h3>
-            <form action={updateProfileAction} className="space-y-4">
-              <div>
-                <label className="block text-xs text-ice/60 mb-1 uppercase tracking-wider">Nome Completo</label>
-                <input
-                  type="text"
-                  name="name"
-                  defaultValue={user?.name ?? ''}
-                  className="w-full bg-navy border border-azure/20 rounded-lg px-4 py-3 text-ice placeholder:text-ice/30 focus:outline-none focus:border-azure transition-colors"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-ice/60 mb-1 uppercase tracking-wider">Bio</label>
-                <textarea
-                  name="bio"
-                  rows={3}
-                  defaultValue={profile?.bio ?? ''}
-                  placeholder="Conte um pouco sobre você..."
-                  className="w-full bg-navy border border-azure/20 rounded-lg px-4 py-3 text-ice placeholder:text-ice/30 focus:outline-none focus:border-azure transition-colors resize-none"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-ice/60 mb-1 uppercase tracking-wider">Foto de Perfil</label>
-                <ImageUpload 
-                  name="avatarUrl" 
-                  defaultImage={profile?.avatarUrl} 
-                  label="Enviar foto" 
-                  className="h-32 rounded-lg w-full" 
-                  folder="players"
-                />
-              </div>
-              <button
-                type="submit"
-                className="bg-azure text-navy font-bold px-6 py-2.5 rounded-lg hover:bg-ice transition-colors"
-              >
-                Salvar Alterações
-              </button>
-            </form>
-          </div>
+          <ProfileForm user={user} profile={profile} />
 
           {/* Modalities */}
           <div className="bg-slate rounded-xl border border-azure/10 p-6">

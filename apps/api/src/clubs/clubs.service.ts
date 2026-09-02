@@ -201,6 +201,11 @@ export class ClubsService {
     if (!club) throw new NotFoundException('Club not found');
     if (!club.modalityId) throw new BadRequestException('Club has no modality assigned');
 
+    const user = await db.query.users.findFirst({ where: eq(users.id, userId) });
+    if (!user || !user.name || !user.nickname || !user.birthDate) {
+      throw new BadRequestException('INCOMPLETE_PROFILE');
+    }
+
     const existingMember = await db.query.clubMembers.findFirst({
       where: and(eq(clubMembers.clubId, clubId), eq(clubMembers.userId, userId))
     });
@@ -244,6 +249,11 @@ export class ClubsService {
     const club = await db.query.clubs.findFirst({ where: eq(clubs.id, invite.clubId) });
 
     if (accept) {
+      const user = await db.query.users.findFirst({ where: eq(users.id, userId) });
+      if (!user || !user.name || !user.nickname || !user.birthDate) {
+        throw new BadRequestException('INCOMPLETE_PROFILE');
+      }
+
       await db.insert(clubMembers).values({
         clubId: invite.clubId,
         userId: invite.userId,

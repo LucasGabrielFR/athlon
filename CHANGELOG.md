@@ -4,6 +4,14 @@ Todas as mudanças notáveis para o projeto **Athlon** serão documentadas neste
 
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [0.8.1] - 2026-09-02
+### Added
+- **Onboarding de Jogadores**: Implementado um fluxo de boas-vindas no painel do jogador que sinaliza se o perfil está completo.
+- **Campos de Perfil e Validação**: Adicionados Nickname, Data de Nascimento (obrigatórios) e Localização no perfil de jogadores, com trava de nickname único.
+
+### Changed
+- **Entrada em Clubes (Segurança)**: O backend agora bloqueia convites e pedidos de entrada em clubes se o atleta não tiver preenchido os campos obrigatórios no Perfil.
+
 ## [0.8.0] - 2026-08-30
 ### Added
 - **Recuperação de Senha**: Implementado o fluxo completo de "Esqueceu sua senha?", permitindo que o usuário solicite um código de verificação via e-mail e redefina a senha na plataforma.

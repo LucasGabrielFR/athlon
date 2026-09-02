@@ -2,12 +2,48 @@
 
 import Link from 'next/link';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
+import { CheckCircle2, Circle } from 'lucide-react';
 
 export function PlayerDashboard({ data }: { data: any }) {
   const radarData = data.radarStats || [];
+  
+  // Onboarding logic
+  const hasProfileData = !!(data.user?.name && data.user?.nickname && data.user?.birthDate);
+  const hasModalities = data.statsPerModality?.length > 0 || data.clubs?.length > 0;
+  const showOnboarding = !hasProfileData || !hasModalities;
 
   return (
     <div className="space-y-8">
+      {/* Onboarding Section */}
+      {showOnboarding && (
+        <div className="bg-slate rounded-xl border border-azure/20 p-6 shadow-sm shadow-azure/5">
+          <h3 className="text-ice font-bold text-lg mb-2 flex items-center gap-2">
+            <span>🚀</span> Bem-vindo! Vamos completar seu perfil?
+          </h3>
+          <p className="text-ice/60 text-sm mb-6">
+            Para aproveitar ao máximo a plataforma e poder entrar em clubes, você precisa completar os passos abaixo.
+          </p>
+          
+          <div className="space-y-4 max-w-xl">
+            <Link href="/dashboard/profile" className="flex items-center gap-3 p-3 rounded-lg bg-slate-dark border border-ice/5 hover:border-azure/30 transition-colors">
+              {hasProfileData ? <CheckCircle2 className="text-emerald-500 w-5 h-5" /> : <Circle className="text-ice/30 w-5 h-5" />}
+              <div>
+                <p className={`text-sm font-bold ${hasProfileData ? 'text-ice' : 'text-azure'}`}>Preencha seus dados pessoais</p>
+                <p className="text-xs text-ice/50">Nome, Nickname e Data de Nascimento são obrigatórios.</p>
+              </div>
+            </Link>
+
+            <Link href="/dashboard/profile" className="flex items-center gap-3 p-3 rounded-lg bg-slate-dark border border-ice/5 hover:border-azure/30 transition-colors">
+              {hasModalities ? <CheckCircle2 className="text-emerald-500 w-5 h-5" /> : <Circle className="text-ice/30 w-5 h-5" />}
+              <div>
+                <p className={`text-sm font-bold ${hasModalities ? 'text-ice' : 'text-azure'}`}>Escolha suas modalidades</p>
+                <p className="text-xs text-ice/50">Adicione as modalidades que você pratica no seu perfil.</p>
+              </div>
+            </Link>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Left Column (1/3) */}
@@ -22,19 +58,19 @@ export function PlayerDashboard({ data }: { data: any }) {
               <div className="w-full flex-1">
                 <ResponsiveContainer width="100%" height="100%">
                   <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
-                    <PolarGrid stroke="rgba(56, 189, 248, 0.2)" />
-                    <PolarAngleAxis dataKey="subject" tick={{ fill: '#f8fafc', fontSize: 10 }} />
+                    <PolarGrid stroke="var(--color-azure)" strokeOpacity={0.2} />
+                    <PolarAngleAxis dataKey="subject" tick={{ fill: 'var(--color-ice)', fontSize: 10 }} />
                     <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
                     <Radar
                       name="Atleta"
                       dataKey="value"
-                      stroke="#38bdf8"
-                      fill="#38bdf8"
+                      stroke="var(--color-azure)"
+                      fill="var(--color-azure)"
                       fillOpacity={0.4}
                     />
                     <Tooltip 
-                      contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(248, 250, 252, 0.1)' }}
-                      itemStyle={{ color: '#f8fafc' }}
+                      contentStyle={{ backgroundColor: 'var(--color-navy)', border: '1px solid var(--color-ice)', opacity: 0.9 }}
+                      itemStyle={{ color: 'var(--color-ice)' }}
                       formatter={(value: any) => [`${Math.round(Number(value) || 0)}%`, 'Poder']}
                     />
                   </RadarChart>

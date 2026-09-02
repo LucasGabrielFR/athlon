@@ -223,7 +223,33 @@ export default function RegisterClient({ error }: { error?: string }) {
       <form onSubmit={handleRegister} className="space-y-4">
         <input type="hidden" name="role" value={selectedRole ?? ''} />
 
-        <div className="grid grid-cols-2 gap-4">
+        {selectedRole === 'player' ? (
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs text-ice/60 mb-1 uppercase tracking-wider">
+                Nickname <span className="text-azure">*</span>
+              </label>
+              <input
+                type="text"
+                name="nickname"
+                placeholder="@seuNick"
+                required
+                className="w-full bg-navy border border-azure/20 rounded-lg px-4 py-3 text-ice placeholder:text-ice/30 focus:outline-none focus:border-azure transition-colors"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-ice/60 mb-1 uppercase tracking-wider">
+                Data de Nasc. <span className="text-azure">*</span>
+              </label>
+              <input
+                type="date"
+                name="birthDate"
+                required
+                className="w-full bg-navy border border-azure/20 rounded-lg px-4 py-3 text-ice focus:outline-none focus:border-azure transition-colors"
+              />
+            </div>
+          </div>
+        ) : (
           <div>
             <label className="block text-xs text-ice/60 mb-1 uppercase tracking-wider">
               Nome Completo <span className="text-azure">*</span>
@@ -236,16 +262,7 @@ export default function RegisterClient({ error }: { error?: string }) {
               className="w-full bg-navy border border-azure/20 rounded-lg px-4 py-3 text-ice placeholder:text-ice/30 focus:outline-none focus:border-azure transition-colors"
             />
           </div>
-          <div>
-            <label className="block text-xs text-ice/60 mb-1 uppercase tracking-wider">Nickname</label>
-            <input
-              type="text"
-              name="nickname"
-              placeholder="@seuNick"
-              className="w-full bg-navy border border-azure/20 rounded-lg px-4 py-3 text-ice placeholder:text-ice/30 focus:outline-none focus:border-azure transition-colors"
-            />
-          </div>
-        </div>
+        )}
 
         <div>
           <label className="block text-xs text-ice/60 mb-1 uppercase tracking-wider">
