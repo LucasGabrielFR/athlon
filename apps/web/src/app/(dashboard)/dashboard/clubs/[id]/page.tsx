@@ -65,9 +65,13 @@ export default async function ClubManagePage({
             ← Meus Clubes
           </Link>
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-full bg-azure/10 border border-azure/20 flex items-center justify-center text-xl font-black text-azure">
-              {club.tag}
-            </div>
+            {club.logoUrl ? (
+              <img src={club.logoUrl} alt={club.name} className="w-14 h-14 rounded-full object-cover border border-azure/20 shadow-lg shadow-azure/10" />
+            ) : (
+              <div className="w-14 h-14 rounded-full bg-azure/10 border border-azure/20 flex items-center justify-center text-xl font-black text-azure">
+                {club.tag}
+              </div>
+            )}
             <div>
               <div className="flex items-center gap-3">
                 <h2 className="text-3xl font-bold text-ice">{club.name}</h2>
@@ -98,6 +102,14 @@ export default async function ClubManagePage({
                 🚪 Sair do Clube
               </ConfirmButton>
             </form>
+          )}
+          {isPresident && (
+            <Link
+              href={`/dashboard/clubs/${clubId}/edit`}
+              className="text-xs bg-slate border border-azure/20 hover:border-azure text-azure px-4 py-2 rounded-lg font-bold transition-all flex items-center shadow-lg shadow-azure/5"
+            >
+              ✏️ Editar Clube
+            </Link>
           )}
           <Link
             href={`/dashboard/clubs`}

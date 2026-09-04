@@ -100,9 +100,13 @@ export default async function ClubsPage({
                 className="flex items-center justify-between bg-midnight/60 border border-amber-500/10 rounded-xl p-4 group"
               >
                 <div className="flex items-center gap-4">
-                   <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center font-black text-amber-500 text-xs">
-                     {invite.club.tag}
-                   </div>
+                   {invite.club.logoUrl ? (
+                     <img src={invite.club.logoUrl} alt={invite.club.name} className="w-10 h-10 rounded-lg object-cover" />
+                   ) : (
+                     <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center font-black text-amber-500 text-xs">
+                       {invite.club.tag}
+                     </div>
+                   )}
                    <div>
                      <p className="text-ice font-bold text-sm">{invite.club.name}</p>
                      <p className="text-ice/40 text-[10px] uppercase font-bold tracking-widest">{invite.modality?.name || 'N/A'}</p>
@@ -154,9 +158,13 @@ export default async function ClubsPage({
                      {m.role === 'president' ? 'Presidente' : 'Membro'}
                    </span>
                 </div>
-                <div className="w-12 h-12 rounded-xl bg-midnight border border-azure/10 flex items-center justify-center text-xl font-black text-azure mb-4 group-hover:scale-110 transition-transform">
-                  {m.club.tag}
-                </div>
+                {m.club.logoUrl ? (
+                  <img src={m.club.logoUrl} alt={m.club.name} className="w-12 h-12 rounded-xl object-cover mb-4 group-hover:scale-110 transition-transform" />
+                ) : (
+                  <div className="w-12 h-12 rounded-xl bg-midnight border border-azure/10 flex items-center justify-center text-xl font-black text-azure mb-4 group-hover:scale-110 transition-transform">
+                    {m.club.tag}
+                  </div>
+                )}
                 <h4 className="text-ice font-bold text-lg mb-1 group-hover:text-azure transition-colors line-clamp-1">{m.club.name}</h4>
                 <p className="text-ice/30 text-[10px] uppercase font-black tracking-widest">{m.modality?.name || 'N/A'}</p>
               </Link>
@@ -197,9 +205,13 @@ export default async function ClubsPage({
                   className="bg-slate/30 border border-azure/5 hover:border-azure/20 rounded-2xl p-6 transition-all hover:bg-slate group"
                 >
                   <div className="flex items-center gap-4 mb-5">
-                    <div className="w-12 h-12 rounded-xl bg-midnight flex items-center justify-center text-lg font-black text-azure/60 group-hover:text-azure transition-colors">
-                      {club.tag}
-                    </div>
+                    {club.logoUrl ? (
+                      <img src={club.logoUrl} alt={club.name} className="w-12 h-12 rounded-xl object-cover" />
+                    ) : (
+                      <div className="w-12 h-12 rounded-xl bg-midnight flex items-center justify-center text-lg font-black text-azure/60 group-hover:text-azure transition-colors">
+                        {club.tag}
+                      </div>
+                    )}
                     <div className="flex flex-col">
                       <h4 className="text-ice font-bold group-hover:text-azure transition-colors line-clamp-1">{club.name}</h4>
                       <p className="text-[10px] text-ice/30 font-black uppercase tracking-widest">{club.modality?.name || 'N/A'}</p>

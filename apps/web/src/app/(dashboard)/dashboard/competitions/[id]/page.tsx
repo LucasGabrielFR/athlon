@@ -619,15 +619,31 @@ export default async function CompetitionDetailPage({
 
           <div className="bg-gradient-to-br from-slate to-slate-dark border border-azure/5 rounded-[2.5rem] p-8">
             <h3 className="text-[10px] text-ice/40 uppercase font-black tracking-widest mb-4 italic">Organizador</h3>
-            <div className="flex items-center gap-4">
-              <div className="h-10 w-10 bg-azure/10 rounded-xl flex items-center justify-center font-black text-azure italic">
-                {comp.organization?.name?.[0] || comp.organizer?.name?.[0] || 'A'}
+            {comp.organization?.id ? (
+              <Link href={`/dashboard/organizations/${comp.organization.id}`} className="flex items-center gap-4 group">
+                {comp.organization.logoUrl ? (
+                  <img src={comp.organization.logoUrl} alt={comp.organization.name} className="w-10 h-10 rounded-xl object-cover" />
+                ) : (
+                  <div className="h-10 w-10 bg-azure/10 rounded-xl flex items-center justify-center font-black text-azure italic">
+                    {comp.organization.name?.[0] || 'A'}
+                  </div>
+                )}
+                <div>
+                  <p className="text-sm font-black text-ice italic group-hover:text-azure transition-colors">{comp.organization.name}</p>
+                  <p className="text-[9px] text-ice/30 uppercase font-bold tracking-widest mt-1 italic group-hover:text-azure/60 transition-colors">Ver Perfil da Org →</p>
+                </div>
+              </Link>
+            ) : (
+              <div className="flex items-center gap-4">
+                <div className="h-10 w-10 bg-azure/10 rounded-xl flex items-center justify-center font-black text-azure italic">
+                  {comp.organizer?.name?.[0] || 'A'}
+                </div>
+                <div>
+                  <p className="text-sm font-black text-ice italic">{comp.organizer?.name || 'Athlon Sport'}</p>
+                  <p className="text-[9px] text-ice/30 uppercase font-bold tracking-widest mt-1 italic">Organizador Independente</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-black text-ice italic">{comp.organization?.name || comp.organizer?.name || 'Athlon Sport'}</p>
-                <p className="text-[9px] text-ice/30 uppercase font-bold tracking-widest mt-1 italic">Ver Perfil da Org →</p>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>

@@ -347,6 +347,7 @@ export const matches = mysqlTable('matches', {
   updatedAt: timestamp('updated_at').defaultNow(),
   isValidated: boolean('is_validated').notNull().default(false),
   submissionStatus: varchar('submission_status', { length: 30 }).notNull().default('pending'), // pending | submitted_by_home | submitted_by_away | disputed | validated
+  evidenceUrl: varchar('evidence_url', { length: 500 }),
 }, (table) => [
   foreignKey({
     name: 'match_comp_id_fk',

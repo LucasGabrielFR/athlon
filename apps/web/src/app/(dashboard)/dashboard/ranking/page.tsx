@@ -55,10 +55,17 @@ export default async function RankingPage() {
                 </span>
                 
                 <div className="flex items-center gap-6">
-                  <div className="h-20 w-20 bg-azure rounded-[1.5rem] flex items-center justify-center font-black text-2xl text-slate shadow-2xl shadow-azure/20 group-hover:scale-105 transition-transform italic relative overflow-hidden">
-                    {club.tag}
-                    <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  </div>
+                  {club.logoUrl ? (
+                    <div className="h-20 w-20 rounded-[1.5rem] shadow-2xl shadow-azure/20 group-hover:scale-105 transition-transform relative overflow-hidden">
+                      <img src={club.logoUrl} alt={club.name} className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    </div>
+                  ) : (
+                    <div className="h-20 w-20 bg-azure rounded-[1.5rem] flex items-center justify-center font-black text-2xl text-slate shadow-2xl shadow-azure/20 group-hover:scale-105 transition-transform italic relative overflow-hidden">
+                      {club.tag}
+                      <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    </div>
+                  )}
                   <div>
                     <div className="flex items-center gap-3">
                       <h3 className="text-2xl font-black text-ice italic tracking-tighter leading-none">{club.name}</h3>

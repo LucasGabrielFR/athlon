@@ -154,6 +154,21 @@ export class ClubsService {
     return { id: clubId };
   }
 
+  async updateClub(clubId: number, presidentId: number, data: any) {
+    const club = await db.query.clubs.findFirst({ where: eq(clubs.id, clubId) });
+    if (!club) throw new NotFoundException('Club not found');
+    if (club.presidentId !== presidentId) throw new ForbiddenException('Only president can edit the club');
+
+    await db.update(clubs)
+      .set({
+        location: data.location,
+        logoUrl: data.logoUrl,
+      })
+      .where(eq(clubs.id, clubId));
+
+    return { id: clubId };
+  }
+
   async sendInvite(clubId: number, presidentId: number, data: any) {
     // Check permissions
     const club = await db.query.clubs.findFirst({ where: eq(clubs.id, clubId) });

@@ -5,8 +5,16 @@ import { notFound } from 'next/navigation';
 import { ConfirmButton } from '@/components/confirm-button';
 import { deleteOrganizationAction, deactivateOrganizationAction } from '@/app/actions/organizations';
 
-export default async function OrganizationDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function OrganizationDetailPage({ 
+  params,
+  searchParams 
+}: { 
+  params: Promise<{ id: string }>,
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }> 
+}) {
   const { id } = await params;
+  const sParams = await searchParams;
+  const tab = (sParams.tab as string) || 'registration';
   const organizationId = Number(id);
   const session = await auth();
   const userId = Number((session?.user as { id?: string | number }).id);
@@ -15,8 +23,10 @@ export default async function OrganizationDetailPage({ params }: { params: Promi
   let organizationCompetitions: any[] = [];
   try {
     const data = await fetchApi(`/organizations/${organizationId}/details`);
-    organization = data?.organization;
-    organizationCompetitions = data?.competitions || [];
+    if (data && !data.error) {
+      organization = data;
+      organizationCompetitions = data.competitions || [];
+    }
   } catch (e) {}
 
   if (!organization) notFound();
@@ -62,18 +72,57 @@ export default async function OrganizationDetailPage({ params }: { params: Promi
         <div className="lg:col-span-2 space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold text-ice flex items-center gap-2">
-              <span className="text-azure">Competições</span> Ativas
+              <span className="text-azure">Competições</span>
             </h2>
             <span className="text-xs text-ice/20">{organizationCompetitions.length} registro(s)</span>
           </div>
 
-          {organizationCompetitions.length === 0 ? (
-            <div className="bg-slate-dark/50 border border-azure/5 rounded-2xl p-12 text-center">
-              <p className="text-ice/20 italic text-sm">Nenhuma competição organizada por esta federação ainda.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-4">
-              {organizationCompetitions.map((comp) => (
+          <div className="flex items-center gap-2 border-b border-azure/10 pb-4 overflow-x-auto">
+            <Link 
+              href={`/dashboard/organizations/${id}?tab=registration`}
+              className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${
+                tab === 'registration' ? 'bg-azure text-slate shadow-[0_0_15px_rgba(0,163,255,0.3)]' : 'text-ice/40 hover:text-ice hover:bg-azure/5'
+              }`}
+            >
+              Abertos
+            </Link>
+            <Link 
+              href={`/dashboard/organizations/${id}?tab=active`}
+              className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${
+                tab === 'active' ? 'bg-emerald-500 text-slate shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'text-ice/40 hover:text-ice hover:bg-emerald-500/5'
+              }`}
+            >
+              Em Andamento
+            </Link>
+            <Link 
+              href={`/dashboard/organizations/${id}?tab=finished`}
+              className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${
+                tab === 'finished' ? 'bg-ice/20 text-ice shadow-[0_0_15px_rgba(255,255,255,0.1)]' : 'text-ice/40 hover:text-ice hover:bg-ice/5'
+              }`}
+            >
+              Finalizados
+            </Link>
+          </div>
+
+          {(() => {
+            const filteredCompetitions = organizationCompetitions.filter(comp => {
+              if (tab === 'registration') return comp.status === 'registration';
+              if (tab === 'active') return comp.status === 'active';
+              if (tab === 'finished') return comp.status === 'finished';
+              return true;
+            });
+
+            if (filteredCompetitions.length === 0) {
+              return (
+                <div className="bg-slate-dark/50 border border-azure/5 rounded-2xl p-12 text-center">
+                  <p className="text-ice/20 italic text-sm">Nenhuma competição encontrada para esta categoria.</p>
+                </div>
+              );
+            }
+
+            return (
+              <div className="grid grid-cols-1 gap-4">
+                {filteredCompetitions.map((comp) => (
                 <Link 
                   key={comp.id}
                   href={`/dashboard/competitions/${comp.id}`}
@@ -104,7 +153,8 @@ export default async function OrganizationDetailPage({ params }: { params: Promi
                 </Link>
               ))}
             </div>
-          )}
+            );
+          })()}
         </div>
 
         {/* Right Column: Information & Stats */}

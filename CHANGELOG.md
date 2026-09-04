@@ -4,6 +4,16 @@ Todas as mudanças notáveis para o projeto **Athlon** serão documentadas neste
 
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [0.8.3] - 2026-09-03
+### Added
+- **Upload de Imagens**: Implementação de sistema robusto de upload e gestão de arquivos integrando Cloudflare R2 (S3). Suporte para imagens de Perfil, Clube, Organização, Feed e Súmulas.
+- **Componente ImageUpload**: Criação de um componente drag-and-drop reutilizável no Next.js para padronização de envios.
+- **Súmulas (Banco de dados)**: Adicionado a coluna `evidenceUrl` na tabela `matches` para anexação de evidências fotográficas em resultados de campeonatos.
+
+## [0.8.2] - 2026-09-03
+### Changed
+- **UI/UX**: Adicionado o componente de troca de temas (Light/Dark Mode) na barra de navegação da Landing Page para melhorar a acessibilidade e consistência com o restante do sistema.
+
 ## [0.8.1] - 2026-09-02
 ### Added
 - **Onboarding de Jogadores**: Implementado um fluxo de boas-vindas no painel do jogador que sinaliza se o perfil está completo.

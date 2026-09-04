@@ -32,6 +32,26 @@ export async function createClubAction(formData: FormData) {
   }
 }
 
+export async function updateClubAction(formData: FormData) {
+  await requireSession();
+
+  const clubId = Number(formData.get('clubId'));
+  const location = (formData.get('location') as string)?.trim();
+  const logoUrl = (formData.get('logoUrl') as string)?.trim() || null;
+
+  try {
+    await fetchApi(`/clubs/${clubId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ location, logoUrl })
+    });
+    revalidatePath(`/dashboard/clubs/${clubId}`);
+    redirect(`/dashboard/clubs/${clubId}`);
+  } catch (error) {
+    if ((error as { digest?: string })?.digest?.startsWith('NEXT_REDIRECT')) throw error;
+    redirect(`/dashboard/clubs/${clubId}/edit?error=update_failed`);
+  }
+}
+
 export async function invitePlayerAction(formData: FormData) {
   await requireSession();
   const clubId = Number(formData.get('clubId'));

@@ -1,58 +1,31 @@
 import { NextResponse } from "next/server";
-import { generateUploadUrl } from "@/lib/storage";
-import { auth } from "@/auth";
+import { fetchApi } from "@/lib/api";
 
 export async function POST(req: Request) {
   try {
-    // 1. Validar autenticação (Apenas usuários logados podem fazer upload)
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
+    const formData = await req.formData();
+    const endpoint = req.headers.get('x-upload-endpoint');
+
+    if (!endpoint) {
+      return NextResponse.json({ error: "Endpoint não fornecido" }, { status: 400 });
     }
 
-    // 2. Extrair dados do arquivo
-    const body = await req.json();
-    const { fileName, contentType, folder } = body;
-
-    if (!fileName || !contentType) {
-      return NextResponse.json(
-        { error: "Nome do arquivo e tipo MIME são obrigatórios." },
-        { status: 400 }
-      );
-    }
-
-    // 3. Validação de segurança básica: Apenas imagens
-    if (!contentType.startsWith("image/")) {
-      return NextResponse.json(
-        { error: "Apenas upload de imagens é permitido." },
-        { status: 400 }
-      );
-    }
-
-    // 4. Validação do diretório alvo (Prevenir directory traversal / injeção)
-    const allowedFolders = ['players', 'clubs', 'organizations', 'competitions', 'uploads', 'feed'];
-    let safeFolder = allowedFolders.includes(folder) ? folder : 'uploads';
-
-    if (folder === 'feed' && body.competitionId) {
-      safeFolder = `feed/comp_${body.competitionId}`;
-    }
-
-    // 5. Gerar Presigned URL
-    const { uploadUrl, fileKey, publicUrl } = await generateUploadUrl(
-      fileName,
-      contentType,
-      safeFolder
-    );
-
-    return NextResponse.json({
-      uploadUrl,
-      fileKey,
-      publicUrl,
+    // Proxy the form data to our NestJS backend
+    // fetchApi automatically attaches the HttpOnly token
+    const response = await fetchApi(`/upload/${endpoint}`, {
+      method: 'POST',
+      body: formData,
     });
-  } catch (error) {
-    console.error("Erro ao gerar URL de upload:", error);
+
+    if (!response || !response.url) {
+       return NextResponse.json({ error: "Falha no upload" }, { status: 500 });
+    }
+
+    return NextResponse.json(response);
+  } catch (error: any) {
+    console.error("Erro no proxy de upload:", error);
     return NextResponse.json(
-      { error: "Erro interno no servidor." },
+      { error: error.message || "Erro interno no servidor." },
       { status: 500 }
     );
   }

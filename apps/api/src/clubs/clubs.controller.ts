@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Request, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Put, Delete, Body, Param, Query, UseGuards, Request, ParseIntPipe } from '@nestjs/common';
 import { ClubsService } from './clubs.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -27,6 +27,15 @@ export class ClubsController {
   @Post()
   async createClub(@Request() req: any, @Body() data: any) {
     return this.clubsService.createClub(req.user.sub, data);
+  }
+
+  @Patch(':id')
+  async updateClub(
+    @Request() req: any,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() data: any
+  ) {
+    return this.clubsService.updateClub(id, req.user.sub, data);
   }
 
   @Post(':id/invites')

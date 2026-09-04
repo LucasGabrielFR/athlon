@@ -2,7 +2,7 @@ import { auth } from '@/auth';
 import { fetchApi } from '@/lib/api';
 import { redirect } from 'next/navigation';
 import { createClubAction } from '@/app/actions/clubs';
-import { ImageUpload } from '@/components/ui/image-upload';
+import { ImageUpload } from '@/components/ui/ImageUpload';
 import Link from 'next/link';
 
 export default async function NewClubPage({
@@ -137,7 +137,7 @@ export default async function NewClubPage({
             name="logoUrl" 
             label="Enviar escudo" 
             className="w-32 h-32 mx-auto rounded-full" 
-            folder="clubs"
+            endpoint="club"
           />
         </div>
 

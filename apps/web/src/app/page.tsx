@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Trophy, Shield, Zap, Target, BarChart2, Users } from 'lucide-react';
 import Image from 'next/image';
 import { auth } from '@/auth';
+import { ThemeToggle } from '@/components/layout/theme-toggle';
 
 export default async function LandingPage() {
   const session = await auth();
@@ -21,6 +22,7 @@ export default async function LandingPage() {
             <img src="/logo/athlon-padrao-sem-bg.png" alt="Athlon" className="h-8 w-auto" />
           </div>
           <nav className="flex items-center gap-6">
+            <ThemeToggle />
             {session ? (
               <Link href="/dashboard" className="text-sm font-bold bg-azure text-navy px-6 py-2.5 rounded-sm hover:bg-ice transition-all uppercase tracking-widest">
                 Dashboard

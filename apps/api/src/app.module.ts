@@ -11,6 +11,7 @@ import { CompetitionsModule } from './competitions/competitions.module';
 import { StatsModule } from './stats/stats.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { EmailModule } from './email/email.module';
+import { UploadModule } from './upload/upload.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { EmailModule } from './email/email.module';
     StatsModule,
     NotificationsModule,
     EmailModule,
+    UploadModule,
   ],
   controllers: [AppController],
   providers: [AppService],
